@@ -1,0 +1,25 @@
+node_modules/
+dist/
+.env
+*.log
+public/
+uploads/
+.DS_Store
+*.tsbuildinfo
+
+# Development & Debugging
+scripts/old_tests/
+scripts/scratch/
+scripts/logs/
+scratch/
+scripts/output.txt
+*.log
+*.txt
+temp_*.ts
+tmp_*.ts
+test_*.ts
+test-*.ts
+check_*.ts
+debug_*.ts
+pnpm-lock.yaml
+

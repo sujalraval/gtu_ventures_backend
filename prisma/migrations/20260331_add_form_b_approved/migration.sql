@@ -1,0 +1,2 @@
+-- Redundant: Column already exists in 0_init
+-- ALTER TABLE "StartupApplication" ADD COLUMN IF NOT EXISTS "isFormBApproved" BOOLEAN NOT NULL DEFAULT false;
