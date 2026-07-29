@@ -19,7 +19,7 @@ jobs:
           repository: sujalraval/gtu_ventures_frontend
           path: frontend
           ref: main
-          token: ${{ secrets.GH_PATH || github.token }}
+          token: ${{ secrets.GH_PAT || github.token }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
