@@ -165,7 +165,7 @@ function buildDirectoryEntry(user: StartupDataUser): DirectoryEntry {
     cohort: app?.cohort?.name || 'Unknown Cohort',
     email: user.email,
     website: app?.website ?? null,
-    description: app?.briefAbout || 'A startup from the GUSEC Incubation Program.',
+    description: app?.briefAbout || 'A startup from the GTU Ventures Incubation Program.',
     graduatedAt: app?.graduatedAt ?? null,
   };
 }
@@ -999,7 +999,7 @@ export const alumniController = {
             sendEmail(
               u.email,
               `KPI Update Request — ${snapshotYear}`,
-              `<p>Dear ${u.name},</p><p>Please submit your annual KPI snapshot for <strong>${snapshotYear}</strong> on the GUSEC Alumni Portal.</p>`
+              `<p>Dear ${u.name},</p><p>Please submit your annual KPI snapshot for <strong>${snapshotYear}</strong> on the GTU Ventures Alumni Portal.</p>`
             ).then(() => ({ id: u.id, ok: true }))
           )
         );

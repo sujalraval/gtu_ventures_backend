@@ -40,7 +40,7 @@ export class AuthService {
       <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px; max-width: 500px;">
         <h2 style="color: #2D3748;">Your Verification Code</h2>
         <p>Hello,</p>
-        <p>Use the code below to sign in to the GUSEC Startup Portal. This code expires in 10 minutes.</p>
+        <p>Use the code below to sign in to the GTU Ventures Startup Portal. This code expires in 10 minutes.</p>
         <div style="background: #edf2f7; padding: 15px; border-radius: 5px; text-align: center; font-size: 24px; font-weight: bold; letter-spacing: 5px; color: #4A5568;">
           ${otp}
         </div>
@@ -48,7 +48,7 @@ export class AuthService {
       </div>
     `;
 
-    await sendEmail(email, 'Your GUSEC Login Code', html);
+    await sendEmail(email, 'Your GTU Ventures Login Code', html);
     return { message: 'OTP sent successfully' };
   }
 
@@ -204,7 +204,7 @@ export class AuthService {
         </p>
         <p style="font-size:12px;color:#6b7280">This link expires in 1 hour. If you did not request this, ignore this email.</p>
         <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0"/>
-        <p style="font-size:12px;color:#6b7280">GU Incubation & Venture Portal · GUSEC, Ahmedabad</p>
+        <p style="font-size:12px;color:#6b7280">GU Incubation & Venture Portal · GTU Ventures, Ahmedabad</p>
       </div>`
     );
 
@@ -258,7 +258,7 @@ export class AuthService {
       <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px; max-width: 500px;">
         <h2 style="color: #2D3748;">Application Verification Code</h2>
         <p>Hello,</p>
-        <p>Use the code below to verify your email for your GUSEC Startup Application. This code expires in 10 minutes.</p>
+        <p>Use the code below to verify your email for your GTU Ventures Startup Application. This code expires in 10 minutes.</p>
         <div style="background: #edf2f7; padding: 15px; border-radius: 5px; text-align: center; font-size: 24px; font-weight: bold; letter-spacing: 5px; color: #4A5568;">
           ${otp}
         </div>
@@ -270,7 +270,7 @@ export class AuthService {
       console.log(`[DEBUG] OTP for ${email}: ${otp}`);
     }
 
-    await sendEmail(email, 'Your GUSEC Application Verification Code', html);
+    await sendEmail(email, 'Your GTU Ventures Application Verification Code', html);
     return { message: 'Verification OTP sent successfully' };
   }
 

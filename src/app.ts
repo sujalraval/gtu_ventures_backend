@@ -130,9 +130,9 @@ app.post('/api/seed-admin', async (req: Request, res: Response) => {
       create: { name: 'Super Admin', code: 'SUPER_ADMIN', description: 'Full system access' },
     });
     const admin = await prisma.user.upsert({
-      where: { email: 'admin@gusec.edu.in' },
+      where: { email: 'admin@gtu.edu.in' },
       update: { password: hashedPassword, role: 'SUPER_ADMIN', isSetupComplete: true, isActive: true },
-      create: { email: 'admin@gusec.edu.in', password: hashedPassword, name: 'Super Admin', role: 'SUPER_ADMIN', isSetupComplete: true, isActive: true },
+      create: { email: 'admin@gtu.edu.in', password: hashedPassword, name: 'Super Admin', role: 'SUPER_ADMIN', isSetupComplete: true, isActive: true },
     });
     await prisma.userRole.upsert({
       where: { userId_roleId: { userId: admin.id, roleId: role.id } },

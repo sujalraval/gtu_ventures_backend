@@ -304,7 +304,7 @@ export async function generateEventReportPDF(eventId: string): Promise<{ buffer:
     doc.switchToPage(i);
     doc.fontSize(8).fillColor(MUTED)
       .text(
-        `GUSEC — ${ev.title} — Generated ${fmtDateTime(new Date())} — Page ${i + 1} of ${pages.count}`,
+        `GTU Ventures — ${ev.title} — Generated ${fmtDateTime(new Date())} — Page ${i + 1} of ${pages.count}`,
         50,
         doc.page.height - 40,
         { align: 'center', width: doc.page.width - 100 }

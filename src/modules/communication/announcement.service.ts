@@ -192,7 +192,7 @@ function buildAnnouncementEmail(title: string, body: string, recipientName: stri
       <div style="color:#374151;line-height:1.7;white-space:pre-wrap">${body}</div>
     </div>
     <div style="background:#f9fafb;padding:16px 32px;border-top:1px solid #e5e7eb;text-align:center">
-      <p style="margin:0;color:#9ca3af;font-size:12px">This is an automated message from GUSEC. Do not reply to this email.</p>
+      <p style="margin:0;color:#9ca3af;font-size:12px">This is an automated message from GTU Ventures. Do not reply to this email.</p>
     </div>
   </div>
 </body>

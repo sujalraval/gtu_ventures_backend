@@ -44,7 +44,7 @@ export class FinanceService {
         orderBy: { date: 'desc' },
       });
 
-      // Map back to GUSEC's frontend expected Voucher flat-structure
+      // Map back to GTU Ventures's frontend expected Voucher flat-structure
       return vouchers.map((v) => ({
         id: v.id,
         voucherNo: v.voucherNo,
@@ -337,7 +337,7 @@ export class FinanceService {
   // --- 6. Government Grants & Startup Milestone Tranches ---
   static async getStartupGrantMilestones() {
     try {
-      // Query GUSEC's existing tranches database joined to startups, grants, and milestones
+      // Query GTU Ventures's existing tranches database joined to startups, grants, and milestones
       const tranches = await prisma.startupGrantTranche.findMany({
         include: {
           allocation: {
@@ -355,7 +355,7 @@ export class FinanceService {
         orderBy: { createdAt: 'desc' },
       });
 
-      // Filter and map GUSEC's core grant items into flat UI rows
+      // Filter and map GTU Ventures's core grant items into flat UI rows
       return tranches.map((t) => {
         const startupName = t.allocation?.application?.startupName || 'Unknown Incubator Startup';
         const schemeName =
@@ -447,7 +447,7 @@ export class FinanceService {
           },
         });
 
-        // 4. Update the existing StartupGrantTranche status in GUSEC database
+        // 4. Update the existing StartupGrantTranche status in GTU Ventures database
         await tx.startupGrantTranche.update({
           where: { id: trancheId },
           data: {

@@ -62,7 +62,7 @@ jobs:
           SOURCE: "backend/"
           REMOTE_HOST: 82.112.226.201
           REMOTE_USER: gtuventures-apply
-          TARGET: "/home/gtuventures-apply/htdocs/apply.gtuventures.com"
+          TARGET: "/home/gtuventures-apply/htdocs/gtuventures_bck_prod"
           EXCLUDE: "/node_modules/, /.git/, /.env"
 
       - name: Post Deployment Script
@@ -80,7 +80,7 @@ jobs:
             
             export PATH=$PATH:/usr/local/bin:/usr/bin:/bin
             
-            cd /home/gtuventures-apply/htdocs/apply.gtuventures.com
+            cd /home/gtuventures-apply/htdocs/gtuventures_bck_prod
 
             cat <<'EOF' > .env
             PORT=${{ secrets.PORT || '5000' }}
@@ -105,4 +105,4 @@ jobs:
             npx prisma generate
             npx prisma migrate deploy
 
-            pm2 reload src/index.ts --name "gtuventures-backend" --interpreter ts-node || pm2 start src/index.ts --name "gtuventures-backend" --interpreter ts-node
+            pm2 reload dist/server.js --name "gtuventures-backend-prod" || pm2 start dist/server.js --name "gtuventures-backend-prod"
