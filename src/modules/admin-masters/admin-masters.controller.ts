@@ -113,7 +113,7 @@ export class AdminMastersController {
       return res.status(400).json({ success: false, message: "Name and Role Code are required" });
     }
     try {
-      const role = await AdminMastersService.updateOrgRole(id, name, code, description, isActive);
+      const role = await AdminMastersService.updateOrgRole(id as string, name, code, description, isActive);
       res.json({ success: true, data: role });
     } catch (err: any) {
       if (err.code === 'P2002') {

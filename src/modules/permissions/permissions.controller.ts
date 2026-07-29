@@ -51,7 +51,7 @@ export class PermissionsController {
     const { name, code, description, isActive } = req.body;
     if (!name || !code) return res.status(400).json({ success: false, message: "Name and code are required" });
     try {
-      const role = await permissionsService.updateRole(id, { name, code: code.toUpperCase(), description, isActive });
+      const role = await permissionsService.updateRole(id as string, { name, code: code.toUpperCase(), description, isActive });
       res.json({ success: true, data: role });
     } catch (err: any) {
       if (err.statusCode === 409) return res.status(409).json({ success: false, message: 'A record with this value already exists. Please use a unique value.' });
