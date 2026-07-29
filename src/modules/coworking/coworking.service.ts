@@ -1073,7 +1073,7 @@ export class CoworkingService {
         <body>
           <div class="container">
             <div class="header">
-              <div class="logo">GTU Ventures Incubation ERP</div>
+              <div class="logo">GTU Incubation ERP</div>
               <h1>Coworking Space Invoice</h1>
             </div>
             
@@ -1143,16 +1143,16 @@ export class CoworkingService {
             </div>
             
             <div class="footer">
-              This is an automatically generated system invoice sent by GTU Ventures Incubation Platform.<br/>
-              Gujarat University Startup and Entrepreneurship Council (GTU Ventures), Ahmedabad, Gujarat.<br/>
-              © 2026 GTU Ventures. All rights reserved.
+              This is an automatically generated system invoice sent by GTU Incubation Platform.<br/>
+              Gujarat University Startup and Entrepreneurship Council (GTU), Ahmedabad, Gujarat.<br/>
+              © 2026 GTU. All rights reserved.
             </div>
           </div>
         </body>
         </html>
       `;
 
-      await sendEmail(toEmail, `GTU Ventures Coworking Invoice - ${invoice.invoiceNumber} - ${billingMonthText}`, htmlContent);
+      await sendEmail(toEmail, `GTU Coworking Invoice - ${invoice.invoiceNumber} - ${billingMonthText}`, htmlContent);
 
       return await prisma.coworkingInvoice.update({
         where: { id: invoiceId },

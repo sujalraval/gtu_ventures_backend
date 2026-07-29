@@ -27,7 +27,7 @@ async function main() {
            name: "Standard Innovation Fund",
            code: "STD-INNV-001",
            type: "SEED_SUPPORT",
-           source: "GUSEC",
+           source: "GTU",
            agency: "SSIP",
            schemeId: scheme.id,
            totalAmount: 10000000,

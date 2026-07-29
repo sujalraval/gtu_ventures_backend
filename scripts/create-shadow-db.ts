@@ -24,14 +24,14 @@ async function createShadowDb() {
     console.log('Connected to Postgres admin...');
     
     // Check if shadow db exists
-    const res = await client.query("SELECT 1 FROM pg_database WHERE datname = 'gusec2_shadow'");
+    const res = await client.query("SELECT 1 FROM pg_database WHERE datname = 'gtu2_shadow'");
     
     if (res.rowCount === 0) {
-      console.log('Creating database gusec2_shadow...');
-      await client.query('CREATE DATABASE gusec2_shadow');
-      console.log('✅ Created gusec2_shadow');
+      console.log('Creating database gtu2_shadow...');
+      await client.query('CREATE DATABASE gtu2_shadow');
+      console.log('✅ Created gtu2_shadow');
     } else {
-      console.log('✅ gusec2_shadow already exists');
+      console.log('✅ gtu2_shadow already exists');
     }
   } catch (err) {
     console.error('❌ Error:', err);

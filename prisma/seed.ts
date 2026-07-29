@@ -9,7 +9,7 @@ const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
-  const email = 'admin@gusec.edu.in';
+  const email = 'admin@gtu.edu.in';
   const password = 'admin123';
   const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -70,7 +70,7 @@ async function main() {
 
   // 4. Seed default FinancialAccounts (Chart of Accounts)
   const defaultAccounts = [
-    { name: "State Bank of India (Bank A/c)", type: "ASSET", code: "1001", description: "Primary GUSEC bank operational escrow account" },
+    { name: "State Bank of India (Bank A/c)", type: "ASSET", code: "1001", description: "Primary GTU bank operational escrow account" },
     { name: "Accounts Receivable", type: "ASSET", code: "1002", description: "Outstanding coworking space rent and amenities invoices" },
     { name: "SISFS Grant Reserves", type: "RESERVE", code: "2001", description: "Committed reserves for Startup India Seed Fund Scheme" },
     { name: "NIDHI-SSS Grant Reserves", type: "RESERVE", code: "2002", description: "Committed reserves for Central DST Seed Support" },

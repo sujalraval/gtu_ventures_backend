@@ -693,7 +693,7 @@ export class ApplicationsService {
     if (targetEmail) {
       sendEmail(
         targetEmail,
-        `Congratulations on Graduating from GTU Ventures — ${app.startupName}`,
+        `Congratulations on Graduating from GTU — ${app.startupName}`,
         this.generateGraduationEmailTemplate(app.startupName)
       ).catch(err => console.error('[graduation] email failed:', err));
     }
@@ -719,7 +719,7 @@ export class ApplicationsService {
           <h2 style="color:#059669;margin:0 0 8px;">🎓 Congratulations, ${startupName}!</h2>
           <p style="color:#374151;line-height:1.6;">
             We are thrilled to announce that <strong>${startupName}</strong> has officially graduated from the
-            <strong>GTU Ventures Incubation Program</strong>.
+            <strong>GTU Incubation Program</strong>.
           </p>
           <p style="color:#374151;line-height:1.6;">
             As an alumni, you now have access to the Alumni Portal where you can:
@@ -731,9 +731,9 @@ export class ApplicationsService {
             <li>Stay connected with fellow alumni</li>
           </ul>
           <p style="color:#6b7280;font-size:13px;margin-top:24px;">
-            Thank you for being a part of the GTU Ventures ecosystem. We look forward to celebrating your continued success.
+            Thank you for being a part of the GTU ecosystem. We look forward to celebrating your continued success.
           </p>
-          <p style="color:#6b7280;font-size:13px;">— The GTU Ventures Team</p>
+          <p style="color:#6b7280;font-size:13px;">— The GTU Team</p>
         </div>
       </div>
     `;
@@ -1850,7 +1850,7 @@ export class ApplicationsService {
         <p>You can view more details by logging into your dashboard.</p>
         <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb; font-size: 0.875rem; color: #6b7280;">
           Regards,<br/>
-          <strong>GTU Ventures Team</strong>
+          <strong>GTU Team</strong>
         </div>
       </div>
     `;
@@ -1859,13 +1859,13 @@ export class ApplicationsService {
   private static generateCustomEmailTemplate(startupName: string, message: string) {
     return `
       <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e5e7eb; border-radius: 8px;">
-        <h2 style="color: #7c3aed; margin-top: 0;">Message from GTU Ventures Team</h2>
+        <h2 style="color: #7c3aed; margin-top: 0;">Message from GTU Team</h2>
         <p>Dear <strong>${startupName}</strong> Team,</p>
         <div style="white-space: pre-wrap; margin: 20px 0; line-height: 1.5; color: #1f2937;">${message}</div>
         <p>If you have any questions, you can view details or respond by logging into your dashboard.</p>
         <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb; font-size: 0.875rem; color: #6b7280;">
           Regards,<br/>
-          <strong>GTU Ventures Team</strong>
+          <strong>GTU Team</strong>
         </div>
       </div>
     `;

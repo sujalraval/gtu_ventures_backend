@@ -4,7 +4,7 @@ const prisma = new PrismaClient();
 
 async function main() {
   const admin = await prisma.user.findUnique({
-    where: { email: 'admin@gusec.edu.in' },
+    where: { email: 'admin@gtu.edu.in' },
   });
 
   if (admin) {

@@ -37,9 +37,9 @@ async function main() {
         pan: "ABCDE1234G",
         aadhaar: "123456789013",
         fatherSpouseName: "Bharatkumar Raval",
-        email: "riddhi.raval.new@gusec.edu.in",
+        email: "riddhi.raval.new@gtu.edu.in",
         phone: "9876543210",
-        staffCode: "GUSEC-001N",
+        staffCode: "GTU-001N",
         punchId: "P-001N",
         shift: "General",
         policy: "Standard",
@@ -76,7 +76,7 @@ async function main() {
         { academicYear: "2024-25", leaveType: "SL", totalLeave: 10 }
       ],
       experience: [
-        { sector: "Higher Education", subSector: "Research", institutionName: "GUSEC", yearsOfExp: 5 }
+        { sector: "Higher Education", subSector: "Research", institutionName: "GTU", yearsOfExp: 5 }
       ],
       education: {
         qualification: "PhD",
@@ -84,14 +84,14 @@ async function main() {
       },
       address: {
         residential: {
-          addressLine: "123, GUSEC Colony",
+          addressLine: "123, GTU Colony",
           city: IDs.cityName,
           state: IDs.stateName,
           country: IDs.countryName,
           pinCode: "380001"
         },
         communication: {
-          addressLine: "123, GUSEC Colony",
+          addressLine: "123, GTU Colony",
           city: IDs.cityName,
           state: IDs.stateName,
           country: IDs.countryName,

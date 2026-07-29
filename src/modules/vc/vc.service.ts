@@ -57,7 +57,7 @@ export class VcService {
         <p>Thank you for applying to the <strong>GU Venture Portal</strong>. We have received your onboarding application for <strong>${data.fundName}</strong>.</p>
         <p>Our team will verify your SEBI registration and activate your account within <strong>2–3 business days</strong>. You will receive another email once your account is approved.</p>
         <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0"/>
-        <p style="font-size:12px;color:#6b7280">GU Incubation & Venture Portal · GTU Ventures, Ahmedabad</p>
+        <p style="font-size:12px;color:#6b7280">GU Incubation & Venture Portal · GTU, Ahmedabad</p>
       </div>`
     ).catch(() => {});
 
@@ -129,16 +129,16 @@ export class VcService {
         </p>
         <p style="font-size:12px;color:#6b7280">This link expires in 7 days. After setting your password, use <strong>${firm.signatoryEmail}</strong> to log in.</p>
         <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0"/>
-        <p style="font-size:12px;color:#6b7280">GU Incubation & Venture Portal · GTU Ventures, Ahmedabad</p>
+        <p style="font-size:12px;color:#6b7280">GU Incubation & Venture Portal · GTU, Ahmedabad</p>
       </div>`;
     } else {
       html = `<div style="font-family:sans-serif;max-width:560px;margin:0 auto">
         <h2 style="color:#ef4444">Application Status Update</h2>
         <p>Dear ${firm.signatoryName},</p>
         <p>We regret to inform you that your application for <strong>${firm.fundName}</strong> has been <strong>rejected</strong> at this time.</p>
-        <p>Please contact the GTU Ventures team for further clarification or to re-apply.</p>
+        <p>Please contact the GTU team for further clarification or to re-apply.</p>
         <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0"/>
-        <p style="font-size:12px;color:#6b7280">GU Incubation & Venture Portal · GTU Ventures, Ahmedabad</p>
+        <p style="font-size:12px;color:#6b7280">GU Incubation & Venture Portal · GTU, Ahmedabad</p>
       </div>`;
     }
 
@@ -301,7 +301,7 @@ export class VcService {
       startTime: scheduledAt,
       durationMins: data.durationMins || 60,
       location: data.mode === "ONLINE" ? (data.meetingLink || "") : (data.location || ""),
-      description: `VC Meeting via GTU Ventures Incubation Portal. Fund: ${firm.fundName}`,
+      description: `VC Meeting via GTU Incubation Portal. Fund: ${firm.fundName}`,
     });
 
     return prisma.vcMeeting.create({

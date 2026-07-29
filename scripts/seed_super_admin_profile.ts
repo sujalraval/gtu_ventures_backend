@@ -8,7 +8,7 @@ const IDs = {
 };
 
 async function main() {
-  const email = 'admin@gusec.edu.in';
+  const email = 'admin@gtu.edu.in';
 
   console.log(`Finding user ${email}...`);
   const user = await prisma.user.findUnique({
@@ -41,7 +41,7 @@ async function main() {
         aadhaar: "123456789012",
         fatherSpouseName: "System Admin",
         phone: "9999999999",
-        staffCode: "GUSEC-SA-001",
+        staffCode: "GTU-SA-001",
         punchId: "P-SA-001",
         shift: "General",
         policy: "Standard",
@@ -64,7 +64,7 @@ async function main() {
         aadhaar: "123456789012",
         fatherSpouseName: "System Admin",
         phone: "9999999999",
-        staffCode: "GUSEC-SA-001",
+        staffCode: "GTU-SA-001",
         punchId: "P-SA-001",
         shift: "General",
         policy: "Standard",
@@ -82,7 +82,7 @@ async function main() {
         {
           userId: user.id,
           type: "RESIDENTIAL",
-          addressLine: "GUSEC, Gujarat University",
+          addressLine: "GTU, Gujarat University",
           city: "Ahmedabad",
           state: "Gujarat",
           country: "India",
@@ -92,7 +92,7 @@ async function main() {
         {
           userId: user.id,
           type: "COMMUNICATION",
-          addressLine: "GUSEC, Gujarat University",
+          addressLine: "GTU, Gujarat University",
           city: "Ahmedabad",
           state: "Gujarat",
           country: "India",
@@ -106,8 +106,8 @@ async function main() {
     console.log('Populating Institution, Department, and Designation Masters...');
     await tx.institution.upsert({
       where: { id: IDs.institutionId },
-      update: { name: "GUSEC", isActive: true },
-      create: { id: IDs.institutionId, name: "GUSEC", isActive: true }
+      update: { name: "GTU", isActive: true },
+      create: { id: IDs.institutionId, name: "GTU", isActive: true }
     });
 
     await tx.department.upsert({
