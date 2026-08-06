@@ -2656,3 +2656,320 @@ model StartupScore {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+
+
+// ==========================================
+// WEBSITE MANAGEMENT MODULE MODELS (PREFIXED)
+// ==========================================
+enum WebRole {
+  SUPER_ADMIN
+  EDITOR
+  CONTRIBUTOR
+  VIEWER
+}
+
+model WebUser {
+  id            Int        @id @default(autoincrement())
+  email         String     @unique
+  password_hash String
+  role          WebRole       @default(VIEWER)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  auditLogs     WebAuditLog[]
+}
+
+model WebMedia {
+  id           Int      @id @default(autoincrement())
+  filename     String
+  originalName String
+  mimeType     String
+  size         Int
+  url          String
+  altText      String?
+  refCount     Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model WebSetting {
+  id          Int      @id @default(autoincrement())
+  key         String   @unique
+  value       String
+  description String?
+  updatedAt   DateTime @updatedAt
+}
+
+model WebAuditLog {
+  id        Int      @id @default(autoincrement())
+  userId    Int?
+  user      WebUser?    @relation(fields: [userId], references: [id])
+  action    String
+  entity    String
+  entityId  String?
+  before    String?
+  after     String?
+  createdAt DateTime @default(now())
+}
+
+model WebStartup {
+  id            Int     @id @default(autoincrement())
+  name          String
+  logoEmoji     String?
+  logoPath      String?
+  sector        String?
+  stage         String?
+  ecosystem     String?
+  registered    String?
+  email         String?
+  phone         String?
+  website       String?
+  businessModel String?
+  problem       String?
+  market        String?
+  revenueModel  String?
+  technology    String?
+  traction      String?
+  awards        String?
+  press         String?
+
+  funding    Json? // { status, amount, investors, rounds, grants, logoPath }
+  regulatory Json? // { dpiit, startupIndia, iso, gst, patents }
+  team       Json? // Array of { name, role }
+  mentors    String?
+
+  publishState String   @default("PUBLISHED") // DRAFT, REVIEW, PUBLISHED, ARCHIVED
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model WebMentor {
+  id           Int     @id @default(autoincrement())
+  name         String
+  initials     String?
+  photo        String?
+  designation  String?
+  org          String?
+  industry     String?
+  years        String?
+  mtype        Json? // Array of strings
+  bio          String?
+  expertise    Json? // Array of strings
+  support      Json? // Array of strings
+  engagement   String?
+  mode         String?
+  sectors      String?
+  languages    String?
+  achievements Json? // Array of Arrays [["number", "text"]]
+  linkedin     String?
+  website      String?
+  email        String?
+
+  publishState String   @default("PUBLISHED") // DRAFT, REVIEW, PUBLISHED, ARCHIVED
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+enum WebPartnerType {
+  CORPORATE
+  ECOSYSTEM
+  ACADEMIC
+  INVESTOR
+}
+
+model WebPartner {
+  id       Int         @id @default(autoincrement())
+  name     String
+  emoji    String?
+  link     String?
+  category String?
+  about    String?
+  mou      Json? // { status, scope, since }
+  type     WebPartnerType @default(CORPORATE)
+
+  publishState String   @default("PUBLISHED") // DRAFT, REVIEW, PUBLISHED, ARCHIVED
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model WebMou {
+  id           Int      @id @default(autoincrement())
+  org          String
+  emoji        String?
+  logo         String?
+  link         String?
+  status       String?
+  number       String?
+  title        String?
+  date         String?
+  effective    String?
+  expiry       String?
+  scope        Json?
+  benefits     Json?
+  activities   Json?
+  brief        String?
+  objective    String?
+  pdf          String?
+  press        String?
+  publishState String   @default("PUBLISHED")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model WebScheme {
+  id            Int      @id @default(autoincrement())
+  name          String
+  code          String?
+  desc          String?
+  objectives    String?
+  eligibility   String?
+  beneficiaries Json?
+  providedBy    String?
+  authority     String?
+  type          String?
+  installments  String?
+  departments   Json?
+  category      Json?
+  sectors       Json?
+  budget        String?
+  maxGrant      String?
+  fundingType   String?
+  duration      String?
+  equityPct     String?
+  apply         String?
+  publishState  String   @default("PUBLISHED")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model WebVertical {
+  id           Int      @id @default(autoincrement())
+  vid          String?
+  code         String?
+  name         String
+  logoPath     String?
+  backer       String?
+  emoji        String?
+  about        String?
+  offerings    Json?
+  forWho       String?
+  publishState String   @default("PUBLISHED")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model WebLab {
+  id           Int      @id @default(autoincrement())
+  name         String
+  type         String?
+  location     String?
+  equipment    Json?
+  availability String?
+  bookingLink  String?
+  images       Json?
+  publishState String   @default("PUBLISHED")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model WebAnnouncement {
+  id           Int      @id @default(autoincrement())
+  title        String
+  date         String?
+  category     String?
+  content      String?
+  link         String?
+  image        String?
+  publishState String   @default("PUBLISHED")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model WebStory {
+  id           Int      @id @default(autoincrement())
+  startupName  String
+  founder      String?
+  challenge    String?
+  solution     String?
+  impact       Json?
+  quote        String?
+  coverImage   String?
+  publishState String   @default("PUBLISHED")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model WebTestimonial {
+  id           Int      @id @default(autoincrement())
+  authorName   String
+  designation  String?
+  organization String?
+  quote        String?
+  photo        String?
+  rating       Int?
+  publishState String   @default("PUBLISHED")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model WebOrg {
+  id           Int      @id @default(autoincrement())
+  name         String
+  type         String?
+  logo         String?
+  website      String?
+  description  String?
+  contact      Json?
+  publishState String   @default("PUBLISHED")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model WebEvent {
+  id           Int      @id @default(autoincrement())
+  title        String
+  date         String?
+  location     String?
+  description  String?
+  image        String?
+  link         String?
+  status       String?
+  publishState String   @default("PUBLISHED")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model WebTeamMember {
+  id           Int      @id @default(autoincrement())
+  name         String
+  designation  String?
+  photo        String?
+  bio          String?
+  linkedin     String?
+  order        Int      @default(0)
+  publishState String   @default("PUBLISHED")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model WebResource {
+  id           Int      @id @default(autoincrement())
+  title        String
+  type         String?
+  url          String?
+  description  String?
+  publishState String   @default("PUBLISHED")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model WebLead {
+  id          Int      @id @default(autoincrement())
+  name        String
+  email       String
+  phone       String?
+  inquiryType String?
+  message     String?
+  status      String   @default("NEW")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}

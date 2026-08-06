@@ -32,6 +32,7 @@ import mentorsRoutes from './modules/mentors/mentors.routes';
 import eventRoutes from './modules/events/events.routes';
 import kycRoutes from './modules/kyc/kyc.routes';
 import vcRoutes from './modules/vc/vc.routes';
+import websiteManagementRoutes from './modules/website-management/website-management.routes';
 const app: Application = express();
 
 // Trust CloudPanel/Nginx proxy
@@ -116,6 +117,7 @@ app.use('/api/mentors', mentorsRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api/kyc', kycRoutes);
 app.use('/api/vc', vcRoutes);
+app.use('/api/website-management', websiteManagementRoutes);
 
 // TEMPORARY: Seed Super Admin - REMOVE AFTER USE
 app.post('/api/seed-admin', async (req: Request, res: Response) => {
