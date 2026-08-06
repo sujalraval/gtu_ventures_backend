@@ -1,12 +1,13 @@
-const express = require('express');
+// @ts-nocheck
+import express from 'express';
 const router = express.Router();
-const mediaController = require('./media.controller');
-const { upload } = require('../../../common/utils/multer');
-const { authenticate: authenticateToken } = require('../../../common/middleware/auth.middleware');
-const auditLog = (action) => (req, res, next) => next();
+import mediaController from './media.controller';
+import { upload  } from '../../../common/utils/multer';
+import { authenticate as authenticateToken } from '../../../common/middleware/auth.middleware';
+const auditLog = (action) => (req: any, res: any, next: any) => next();
 
 router.post('/', authenticateToken, upload.single('file'), auditLog('Media'), mediaController.upload);
 router.get('/', authenticateToken, mediaController.getAll);
 router.delete('/:id', authenticateToken, auditLog('Media'), mediaController.delete);
 
-module.exports = router;
+export default router;

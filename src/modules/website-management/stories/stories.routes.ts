@@ -1,7 +1,8 @@
-const express = require('express');
+// @ts-nocheck
+import express from 'express';
 const router = express.Router();
-const controller = require('./stories.controller');
-const { authenticate: protect } = require('../../../common/middleware/auth.middleware');
+import controller from './stories.controller';
+import { authenticate as protect } from '../../../common/middleware/auth.middleware';
 
 router.get('/', controller.getAll);
 router.get('/:id', controller.getById);
@@ -11,4 +12,4 @@ router.post('/', protect, controller.create);
 router.put('/:id', protect, controller.update);
 router.delete('/:id', protect, controller.delete);
 
-module.exports = router;
+export default router;

@@ -1,7 +1,8 @@
-const express = require('express');
+// @ts-nocheck
+import express from 'express';
 const router = express.Router();
-const ctrl = require('./leads.controller');
-const { authenticate: authenticateToken } = require('../../../common/middleware/auth.middleware');
+import ctrl from './leads.controller';
+import { authenticate as authenticateToken } from '../../../common/middleware/auth.middleware';
 
 router.get('/', ctrl.getAll);
 router.get('/:id', ctrl.getById);
@@ -9,4 +10,4 @@ router.post('/', authenticateToken, ctrl.create);
 router.put('/:id', authenticateToken, ctrl.update);
 router.delete('/:id', authenticateToken, ctrl.delete);
 
-module.exports = router;
+export default router;

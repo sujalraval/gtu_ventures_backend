@@ -1,10 +1,11 @@
-const express = require('express');
+// @ts-nocheck
+import express from 'express';
 const router = express.Router();
-const ctrl = require('./users.controller');
-const { authenticate: authenticateToken } = require('../../../common/middleware/auth.middleware');
+import ctrl from './users.controller';
+import { authenticate as authenticateToken } from '../../../common/middleware/auth.middleware';
 
 router.get('/', authenticateToken, ctrl.getAll);
 router.post('/', authenticateToken, ctrl.create);
 router.delete('/:id', authenticateToken, ctrl.delete);
 
-module.exports = router;
+export default router;

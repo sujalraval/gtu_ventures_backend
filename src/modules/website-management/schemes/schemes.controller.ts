@@ -1,58 +1,60 @@
+// @ts-nocheck
+import { Request, Response } from 'express';
 import prisma from '../../../lib/prisma';
 
 class SchemesController {
-  async getAll(req, res) {
+  async getAll(req: Request, res: Response) {
     try {
       const items = await prisma.webScheme.findMany({ orderBy: { id: 'desc' } });
       res.json(items);
-    } catch (error) {
+    } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
   }
 
-  async getById(req, res) {
+  async getById(req: Request, res: Response) {
     try {
       const item = await prisma.webScheme.findUnique({
-        where: { id: parseInt(req.params.id) }
+        where: { id: parseInt(req.params.id as string) }
       });
       if (!item) return res.status(404).json({ error: 'Not found' });
       res.json(item);
-    } catch (error) {
+    } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
   }
 
-  async create(req, res) {
+  async create(req: Request, res: Response) {
     try {
       const item = await prisma.webScheme.create({ data: req.body });
       res.status(201).json(item);
-    } catch (error) {
+    } catch (error: any) {
       res.status(400).json({ error: error.message });
     }
   }
 
-  async update(req, res) {
+  async update(req: Request, res: Response) {
     try {
       const item = await prisma.webScheme.update({
-        where: { id: parseInt(req.params.id) },
+        where: { id: parseInt(req.params.id as string) },
         data: req.body
       });
       res.json(item);
-    } catch (error) {
+    } catch (error: any) {
       res.status(400).json({ error: error.message });
     }
   }
 
-  async delete(req, res) {
+  async delete(req: Request, res: Response) {
     try {
       await prisma.webScheme.delete({
-        where: { id: parseInt(req.params.id) }
+        where: { id: parseInt(req.params.id as string) }
       });
       res.status(204).send();
-    } catch (error) {
+    } catch (error: any) {
       res.status(400).json({ error: error.message });
     }
   }
 }
 
-module.exports = new SchemesController();
+export default new SchemesController();

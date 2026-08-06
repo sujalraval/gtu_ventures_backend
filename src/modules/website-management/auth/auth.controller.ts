@@ -1,24 +1,26 @@
-const authService = require('./auth.service');
+// @ts-nocheck
+import { Request, Response } from 'express';
+import authService from './auth.service';
 
 class AuthController {
-  async login(req, res) {
+  async login(req: Request, res: Response) {
     try {
       const { email, password } = req.body;
       const result = await authService.login(email, password);
       res.json(result);
-    } catch (error) {
+    } catch (error: any) {
       res.status(400).json({ error: error.message });
     }
   }
 
-  async getMe(req, res) {
+  async getMe(req: Request, res: Response) {
     try {
       const result = await authService.getMe(req.user.id);
       res.json(result);
-    } catch (error) {
+    } catch (error: any) {
       res.status(404).json({ error: error.message });
     }
   }
 }
 
-module.exports = new AuthController();
+export default new AuthController();

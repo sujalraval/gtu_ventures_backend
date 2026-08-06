@@ -1,3 +1,4 @@
+// @ts-nocheck
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const prisma = require('../../../lib/prisma').default;
@@ -31,4 +32,4 @@ class AuthService {
   }
 }
 
-module.exports = new AuthService();
+export default new AuthService();

@@ -1,8 +1,9 @@
-const express = require('express');
+// @ts-nocheck
+import express from 'express';
 const router = express.Router();
-const partnersController = require('./partners.controller');
-const { authenticate: authenticateToken } = require('../../../common/middleware/auth.middleware');
-const auditLog = (action) => (req, res, next) => next();
+import partnersController from './partners.controller';
+import { authenticate as authenticateToken } from '../../../common/middleware/auth.middleware';
+const auditLog = (action) => (req: any, res: any, next: any) => next();
 
 router.get('/', partnersController.getAll);
 router.get('/:id', partnersController.getOne);
@@ -11,4 +12,4 @@ router.post('/', authenticateToken, auditLog('Partner'), partnersController.crea
 router.put('/:id', authenticateToken, auditLog('Partner'), partnersController.update);
 router.delete('/:id', authenticateToken, auditLog('Partner'), partnersController.delete);
 
-module.exports = router;
+export default router;

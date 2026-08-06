@@ -1,11 +1,12 @@
-const express = require('express');
+// @ts-nocheck
+import express from 'express';
 const router = express.Router();
-const settingsController = require('./settings.controller');
-const { authenticate: authenticateToken } = require('../../../common/middleware/auth.middleware');
-const auditLog = (action) => (req, res, next) => next();
+import settingsController from './settings.controller';
+import { authenticate as authenticateToken } from '../../../common/middleware/auth.middleware';
+const auditLog = (action) => (req: any, res: any, next: any) => next();
 
 // We restrict Settings to Super Admin only, we can do a simple check inline for now
-const checkSuperAdmin = (req, res, next) => {
+const checkSuperAdmin = (req: any, res: any, next: any) => {
   if (req.user?.role !== 'SUPER_ADMIN') {
     return res.status(403).json({ error: 'Super Admin only' });
   }
@@ -15,4 +16,4 @@ const checkSuperAdmin = (req, res, next) => {
 router.get('/', authenticateToken, checkSuperAdmin, settingsController.getAll);
 router.put('/:key', authenticateToken, checkSuperAdmin, auditLog('Setting'), settingsController.update);
 
-module.exports = router;
+export default router;

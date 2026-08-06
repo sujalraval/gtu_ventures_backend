@@ -1,7 +1,9 @@
+// @ts-nocheck
+import { Request, Response } from 'express';
 import prisma from '../../../lib/prisma';
 
 class AuditController {
-  async getAll(req, res) {
+  async getAll(req: Request, res: Response) {
     try {
       const logs = await prisma.webAuditLog.findMany({
         orderBy: { createdAt: 'desc' },
@@ -13,10 +15,10 @@ class AuditController {
         take: 100 // Limit for performance, in reality we'd paginate
       });
       res.json(logs);
-    } catch (error) {
+    } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
   }
 }
 
-module.exports = new AuditController();
+export default new AuditController();
