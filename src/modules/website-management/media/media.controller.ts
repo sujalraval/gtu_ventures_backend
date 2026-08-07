@@ -1,6 +1,8 @@
 // @ts-nocheck
 import { Request, Response } from 'express';
 import prisma from '../../../lib/prisma';
+import fs from 'fs';
+import path from 'path';
 
 class MediaController {
   async upload(req: Request, res: Response) {
@@ -47,8 +49,6 @@ class MediaController {
       if (media.refCount > 0) return res.status(400).json({ error: 'Cannot delete media currently in use.' });
 
       // Delete file from disk
-      import fs from 'fs';
-      import path from 'path';
       const filePath = path.join(__dirname, '../../../uploads', media.filename);
       if (fs.existsSync(filePath)) {
         fs.unlinkSync(filePath);

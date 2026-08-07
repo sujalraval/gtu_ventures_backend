@@ -1,7 +1,7 @@
 // @ts-nocheck
 import express from 'express';
 const router = express.Router();
-import ctrl from './leads.controller';
+import * as ctrl from './leads.controller';
 import { authenticate as authenticateToken } from '../../../common/middleware/auth.middleware';
 
 router.get('/', ctrl.getAll);
