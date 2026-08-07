@@ -14,6 +14,18 @@ class StartupsController {
     }
   }
 
+  async getApprovedApplications(req: Request, res: Response) {
+    try {
+      const approvedStartups = await prisma.startupApplication.findMany({
+        where: { status: 'APPROVED' },
+        orderBy: { createdAt: 'desc' }
+      });
+      res.json(approvedStartups);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
   async getOne(req: Request, res: Response) {
     try {
       const { id } = req.params;

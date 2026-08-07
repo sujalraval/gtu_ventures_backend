@@ -618,18 +618,24 @@ export class ApplicationsService {
       approvedAt: formattedStatus === ApplicationStatus.APPROVED ? new Date() : undefined,
     };
 
+    let applicationRecord: any = null;
+    let justApprovedFormC = false;
+
     // If Accept is clicked from the main page, we need to know which form was just "accepted"
     // to unlock the next one. We determine this by finding the highest submitted but unapproved form.
     if (formattedStatus === ApplicationStatus.APPROVED) {
-      const app = await prisma.startupApplication.findUnique({ where: { id } });
-      if (app) {
-        if (app.isFormGSubmitted && !app.isFormGApproved) updateData.isFormGApproved = true;
-        else if (app.isFormFSubmitted && !app.isFormFApproved) updateData.isFormFApproved = true;
-        else if (app.isFormESubmitted && !app.isFormEApproved) updateData.isFormEApproved = true;
-        else if (app.isFormDSubmitted && !app.isFormDApproved) updateData.isFormDApproved = true;
-        else if (app.isFormCSubmitted && !app.isFormCApproved) updateData.isFormCApproved = true;
-        else if (app.isFormBSubmitted && !app.isFormBApproved) updateData.isFormBApproved = true;
-        else if (app.isFormASubmitted && !app.isFormAApproved) updateData.isFormAApproved = true;
+      applicationRecord = await prisma.startupApplication.findUnique({ where: { id } });
+      if (applicationRecord) {
+        if (applicationRecord.isFormGSubmitted && !applicationRecord.isFormGApproved) updateData.isFormGApproved = true;
+        else if (applicationRecord.isFormFSubmitted && !applicationRecord.isFormFApproved) updateData.isFormFApproved = true;
+        else if (applicationRecord.isFormESubmitted && !applicationRecord.isFormEApproved) updateData.isFormEApproved = true;
+        else if (applicationRecord.isFormDSubmitted && !applicationRecord.isFormDApproved) updateData.isFormDApproved = true;
+        else if (applicationRecord.isFormCSubmitted && !applicationRecord.isFormCApproved) {
+          updateData.isFormCApproved = true;
+          justApprovedFormC = true;
+        }
+        else if (applicationRecord.isFormBSubmitted && !applicationRecord.isFormBApproved) updateData.isFormBApproved = true;
+        else if (applicationRecord.isFormASubmitted && !applicationRecord.isFormAApproved) updateData.isFormAApproved = true;
       }
     }
 
@@ -637,6 +643,31 @@ export class ApplicationsService {
       where: { id },
       data: updateData
     });
+
+    if (justApprovedFormC && applicationRecord) {
+      try {
+        const existing = await prisma.webStartup.findFirst({ where: { name: application.startupName } });
+        if (!existing) {
+          await prisma.webStartup.create({
+            data: {
+              name: application.startupName,
+              logoPath: applicationRecord.logoUrl || null,
+              sector: applicationRecord.industry || applicationRecord.sector || null,
+              stage: applicationRecord.stage || null,
+              email: application.email || null,
+              phone: application.mobile || null,
+              website: applicationRecord.website || null,
+              problem: applicationRecord.problemStatement || null,
+              publishState: "PUBLISHED",
+              registered: "GTU Innovation Council",
+            }
+          });
+          console.log(`[Form C Approval] Automatically created WebStartup for ${application.startupName}`);
+        }
+      } catch (err) {
+        console.error(`[Form C Approval] Failed to create WebStartup for ${application.startupName}`, err);
+      }
+    }
 
     // Send email notification
     try {

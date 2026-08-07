@@ -63,4 +63,7 @@ websiteManagementRouter.use('/users', usersRoutes);
 import verticalsRoutes from './verticals/verticals.routes';
 websiteManagementRouter.use('/verticals', verticalsRoutes);
 
+import statsRoutes from './stats/stats.routes';
+websiteManagementRouter.use('/stats', statsRoutes);
+
 export default websiteManagementRouter;

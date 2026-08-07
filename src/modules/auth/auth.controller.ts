@@ -67,7 +67,7 @@ export class AuthController {
   static refresh = asyncHandler(async (req: Request, res: Response) => {
     const refreshToken = getRefreshToken(req);
     if (!refreshToken) {
-      return res.status(401).json({ success: false, message: 'No refresh token provided' });
+      return res.status(200).json({ success: false, message: 'No refresh token provided' });
     }
     const deviceInfo = req.headers['user-agent'];
     const result = await AuthService.refresh(refreshToken, deviceInfo);

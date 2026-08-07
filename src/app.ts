@@ -67,9 +67,10 @@ if (config.NODE_ENV === 'production') {
   app.use('/api/', limiter);
 }
 // CORS Configuration
+const defaultOrigins = ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:3000', 'http://localhost:8080'];
 const allowedOrigins = config.ALLOWED_ORIGINS.length > 0 
-  ? config.ALLOWED_ORIGINS 
-  : ['http://localhost:5173', 'http://localhost:3000','http://localhost:8080'];
+  ? Array.from(new Set([...config.ALLOWED_ORIGINS, ...defaultOrigins]))
+  : defaultOrigins;
 
 app.use(cors({
   origin: (origin, callback) => {

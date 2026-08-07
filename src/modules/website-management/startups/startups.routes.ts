@@ -6,6 +6,7 @@ import { authenticate as authenticateToken } from '../../../common/middleware/au
 const auditLog = (action) => (req: any, res: any, next: any) => next();
 
 router.get('/', startupsController.getAll);
+router.get('/approved-applications', authenticateToken, startupsController.getApprovedApplications);
 router.get('/:id', startupsController.getOne);
 
 router.post('/', authenticateToken, auditLog('Startup'), startupsController.create);
