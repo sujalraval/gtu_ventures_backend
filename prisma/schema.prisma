@@ -2738,6 +2738,12 @@ model WebStartup {
   mentors    String?
 
   publishState String   @default("PUBLISHED") // DRAFT, REVIEW, PUBLISHED, ARCHIVED
+  
+  dateOfIncubation    DateTime?
+  stageAtIncubation   String?
+  schemeParticipation String?
+  innovationUSP       String?
+  
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 }
