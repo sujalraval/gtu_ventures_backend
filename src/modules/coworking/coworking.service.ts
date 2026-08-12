@@ -66,7 +66,20 @@ export class CoworkingService {
         });
       }
 
-      return this.getBuildingById(building.id, tx);
+      // Fetch directly using findFirst to avoid any transaction visibility issues
+      const createdBuilding = await tx.coworkingBuilding.findFirst({
+        where: { id: building.id },
+        include: {
+          floors: {
+            orderBy: { level: 'asc' },
+          }
+        }
+      });
+      
+      if (!createdBuilding) {
+         return building; // Fallback to returning just the created building if not found with relations yet
+      }
+      return createdBuilding;
     });
   }
 
