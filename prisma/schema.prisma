@@ -3010,6 +3010,8 @@ model WebInventoryItem {
   specification String?
   quantity      String?
   make          String?
+  specs         Json? // [{ label, value }] — the parameter/specification table
+  applications  Json? // [String] — the "Application / Use" bullet list
   order         Int      @default(0)
   publishState  String   @default("PUBLISHED")
   createdAt     DateTime @default(now())

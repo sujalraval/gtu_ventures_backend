@@ -207,6 +207,18 @@ function sanitiseItem(body: any = {}) {
   if (body.specification !== undefined) out.specification = body.specification || null;
   if (body.quantity !== undefined) out.quantity = body.quantity || null;
   if (body.make !== undefined) out.make = body.make || null;
+  // Json? columns: store [] rather than null so Prisma never sees an ambiguous
+  // null for a nullable Json field. Blank rows are dropped here, not in the UI.
+  if (body.specs !== undefined)
+    out.specs = Array.isArray(body.specs)
+      ? body.specs
+          .map((r: any) => ({ label: String(r?.label ?? '').trim(), value: String(r?.value ?? '').trim() }))
+          .filter((r: any) => r.label || r.value)
+      : [];
+  if (body.applications !== undefined)
+    out.applications = Array.isArray(body.applications)
+      ? body.applications.map((a: any) => String(a ?? '').trim()).filter(Boolean)
+      : [];
   if (body.order !== undefined) out.order = Number(body.order) || 0;
   if (body.publishState !== undefined) out.publishState = body.publishState || 'PUBLISHED';
   return out;
