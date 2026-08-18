@@ -1,9 +1,216 @@
-import { randomUUID } from 'crypto';
+import { randomUUID, randomInt } from 'crypto';
+import bcrypt from 'bcryptjs';
+import * as jwt from 'jsonwebtoken';
 import { RegistrationStatus, InviteStatus } from '@prisma/client';
 import prisma from '../../lib/prisma';
+import { config } from '../../common/config/env';
+import { sendEmail } from '../../common/utils/mailer';
 import { NotFoundError, BadRequestError } from '../../common/utils/apiError';
 
+const OTP_TTL_MS = 10 * 60 * 1000;   // code is valid for 10 minutes
+const OTP_MAX_ATTEMPTS = 5;          // wrong guesses before the code is burned
+const OTP_RESEND_COOLDOWN_MS = 60 * 1000;
+const VERIFY_TOKEN_TTL = '20m';      // long enough to finish a form, not to sit on
+const VERIFY_SCOPE = 'EVENT_REGISTRATION';
+
 export class RegistrationsService {
+
+  // ── Email verification ───────────────────────────────────────────────────
+
+  /**
+   * Issues a one-time code to the address given. Returns nothing about whether
+   * the address is already registered — this endpoint is public, so it must not
+   * become a way to probe who has signed up.
+   */
+  static async requestEmailOtp(eventId: string, rawEmail: string) {
+    const event = await this.assertEventExists(eventId);
+    if (event.status === 'CANCELLED') {
+      throw new BadRequestError('This event has been cancelled');
+    }
+    // The email quotes the event title, so a draft must not be able to send one.
+    if (event.status === 'DRAFT') {
+      throw new NotFoundError('Event not found');
+    }
+    if (event.registrationDeadline && new Date() > event.registrationDeadline) {
+      throw new BadRequestError('Registration deadline has passed');
+    }
+
+    const email = String(rawEmail ?? '').trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      throw new BadRequestError('Please enter a valid email address');
+    }
+
+    // Per-address cooldown. The route limiter caps a single IP; this stops one
+    // address being mail-bombed from many IPs.
+    const recent = await prisma.eventEmailOtp.findFirst({
+      where: { email, consumedAt: null, createdAt: { gt: new Date(Date.now() - OTP_RESEND_COOLDOWN_MS) } },
+      orderBy: { createdAt: 'desc' },
+    });
+    if (recent) {
+      throw new BadRequestError('A code was just sent. Please wait a minute before requesting another.');
+    }
+
+    // randomInt is drawn from the CSPRNG; Math.random is predictable enough to
+    // guess a 6-digit code from a known seed.
+    const code = String(randomInt(0, 1_000_000)).padStart(6, '0');
+    const codeHash = await bcrypt.hash(code, 10);
+
+    // Any earlier unused code for this address stops working.
+    await prisma.eventEmailOtp.updateMany({
+      where: { email, consumedAt: null },
+      data: { consumedAt: new Date() },
+    });
+
+    const record = await prisma.eventEmailOtp.create({
+      data: { email, codeHash, expiresAt: new Date(Date.now() + OTP_TTL_MS) },
+    });
+
+    const html = `
+      <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px; max-width: 500px;">
+        <h2 style="color: #2D3748;">Confirm your email</h2>
+        <p>Use the code below to complete your registration for <b>${event.title}</b>. It expires in 10 minutes.</p>
+        <div style="background: #edf2f7; padding: 15px; border-radius: 5px; text-align: center; font-size: 24px; font-weight: bold; letter-spacing: 5px; color: #4A5568;">
+          ${code}
+        </div>
+        <p style="margin-top: 20px; font-size: 12px; color: #718096;">If you didn't request this, you can safely ignore this email.</p>
+      </div>
+    `;
+    try {
+      await sendEmail(email, `Your verification code for ${event.title}`, html);
+    } catch (err) {
+      // The row is already written, and the cooldown above keys off it. Clear it
+      // so a transient SMTP failure does not lock the visitor out for a minute
+      // waiting on a code that was never sent.
+      await prisma.eventEmailOtp.delete({ where: { id: record.id } }).catch(() => undefined);
+      throw err;
+    }
+
+    return { message: 'Verification code sent' };
+  }
+
+  /**
+   * Exchanges a correct code for a short-lived token. The token — not the email
+   * field in the form — decides which address the registration is filed under.
+   */
+  static async verifyEmailOtp(eventId: string, rawEmail: string, code: string) {
+    await this.assertEventExists(eventId);
+
+    const email = String(rawEmail ?? '').trim().toLowerCase();
+    const record = await prisma.eventEmailOtp.findFirst({
+      where: { email, consumedAt: null, expiresAt: { gt: new Date() } },
+      orderBy: { createdAt: 'desc' },
+    });
+    if (!record) {
+      throw new BadRequestError('That code has expired. Please request a new one.');
+    }
+    if (record.attempts >= OTP_MAX_ATTEMPTS) {
+      await prisma.eventEmailOtp.update({
+        where: { id: record.id },
+        data: { consumedAt: new Date() },
+      });
+      throw new BadRequestError('Too many incorrect attempts. Please request a new code.');
+    }
+
+    const ok = await bcrypt.compare(String(code ?? '').trim(), record.codeHash);
+    if (!ok) {
+      await prisma.eventEmailOtp.update({
+        where: { id: record.id },
+        data: { attempts: { increment: 1 } },
+      });
+      throw new BadRequestError('Incorrect code. Please check and try again.');
+    }
+
+    await prisma.eventEmailOtp.update({
+      where: { id: record.id },
+      data: { consumedAt: new Date() },
+    });
+
+    const verificationToken = jwt.sign(
+      { email, scope: VERIFY_SCOPE, eventId },
+      config.JWT_SECRET,
+      { expiresIn: VERIFY_TOKEN_TTL }
+    );
+
+    // Only returned once the code is correct — otherwise this endpoint would
+    // hand a stranger someone else's name and phone number.
+    const participant = await prisma.eventParticipant.findUnique({
+      where: { email },
+      select: {
+        name: true,
+        phone: true,
+        organization: true,
+        designation: true,
+        customFields: true,
+      },
+    });
+
+    // Already signed up for this event? Say so now, rather than after they have
+    // filled the whole form again.
+    const existing = await prisma.eventRegistration.findUnique({
+      where: { eventId_email: { eventId, email } },
+      select: { status: true, qrToken: true },
+    });
+
+    const founder = await this.lookupFounder(email);
+
+    return {
+      verificationToken,
+      email,
+      profile: participant,
+      founder,
+      alreadyRegistered: !!existing && existing.status !== 'CANCELLED',
+      qrToken: existing && existing.status !== 'CANCELLED' ? existing.qrToken : null,
+    };
+  }
+
+  /**
+   * A read across into the ERP, never a write. If the verified address belongs
+   * to a startup account we surface their venture name so a founder does not
+   * retype it — but nothing about the participant is written back, and no
+   * foreign key is stored. Registering for an event never touches the ERP.
+   */
+  private static async lookupFounder(email: string) {
+    try {
+      const user = await prisma.user.findFirst({
+        where: { email, role: 'STARTUP', deletedAt: null, isActive: true },
+        select: {
+          name: true,
+          startupProfile: { select: { companyName: true, industry: true, stage: true } },
+        },
+      });
+      const company = user?.startupProfile?.companyName?.trim();
+      if (!company) return null;
+      return {
+        isFounder: true,
+        founderName: user?.name || null,
+        startupName: company,
+        industry: user?.startupProfile?.industry || null,
+        stage: user?.startupProfile?.stage || null,
+      };
+    } catch (err) {
+      // A founder who is not recognised simply registers as a participant.
+      console.error('Founder lookup failed:', err);
+      return null;
+    }
+  }
+
+  /** Returns the address proven by the token, or throws. */
+  private static emailFromVerificationToken(eventId: string, token?: string) {
+    if (!token) {
+      throw new BadRequestError('Please verify your email address before registering.');
+    }
+    let payload: any;
+    try {
+      payload = jwt.verify(token, config.JWT_SECRET);
+    } catch {
+      throw new BadRequestError('Your verification has expired. Please verify your email again.');
+    }
+    // A token minted for one event must not register someone for another.
+    if (payload?.scope !== VERIFY_SCOPE || payload?.eventId !== eventId || !payload?.email) {
+      throw new BadRequestError('Your verification is not valid for this event.');
+    }
+    return String(payload.email).toLowerCase();
+  }
 
   // ── Registrations ────────────────────────────────────────────────────────
 
@@ -22,7 +229,9 @@ export class RegistrationsService {
     organization?: string;
     designation?: string;
     notes?: string;
-  }) {
+    customFields?: Record<string, any>;
+    verificationToken?: string;
+  }, options: { requireVerifiedEmail?: boolean; enforceRequiredFields?: boolean } = {}) {
     const event = await this.assertEventExists(eventId);
 
     if (event.status === 'CANCELLED') {
@@ -42,45 +251,174 @@ export class RegistrationsService {
       }
     }
 
+    // This endpoint is public and the controller hands us req.body untouched,
+    // so take only these fields by name. Spreading the body would let a caller
+    // set status, qrToken or checkedInAt — and a forged checkedInAt would earn
+    // a participation certificate without attending.
+    // Email is lower-cased so "Foo@x.com" and "foo@x.com" are one person, not
+    // two registrations, two QR tickets and two certificates.
+    // The verified address wins over whatever the form posted, so a caller
+    // cannot verify their own inbox and then file the registration — and any
+    // certificate that follows — under somebody else's address.
+    const verifiedEmail = options.requireVerifiedEmail
+      ? this.emailFromVerificationToken(eventId, data.verificationToken)
+      : null;
+
+    const core = {
+      name: String(data.name ?? '').trim(),
+      email: verifiedEmail ?? String(data.email ?? '').trim().toLowerCase(),
+      phone: data.phone ? String(data.phone).trim() : null,
+      organization: data.organization ? String(data.organization).trim() : null,
+      designation: data.designation ? String(data.designation).trim() : null,
+      notes: data.notes ? String(data.notes).trim() : null,
+    };
+    if (!core.name || !core.email) {
+      throw new BadRequestError('Name and email are required');
+    }
+    // Staff adding a walk-in at the desk are not asked the event's extra
+    // questions, so required ones must not block them. Public registrations
+    // still enforce them.
+    const customFields = this.validateCustomFields(
+      event.registrationFields,
+      data.customFields,
+      options.enforceRequiredFields !== false,
+    );
+
+    // Re-derived here rather than taken from the request: a caller could
+    // otherwise label themselves a founder of any startup they liked.
+    const founder = await this.lookupFounder(core.email);
+    const attribution = {
+      participantType: founder ? 'FOUNDER' : 'PARTICIPANT',
+      startupName: founder?.startupName ?? null,
+    };
+
     // For invite-only events, check the invite list
     if (!event.isPublic) {
       const invite = await prisma.eventInvite.findUnique({
-        where: { eventId_email: { eventId, email: data.email } },
+        where: { eventId_email: { eventId, email: core.email } },
       });
       if (!invite) {
         throw new BadRequestError('This event is invite-only. Your email is not on the invite list.');
       }
       // Mark invite as accepted
       await prisma.eventInvite.update({
-        where: { eventId_email: { eventId, email: data.email } },
+        where: { eventId_email: { eventId, email: core.email } },
         data: { status: 'ACCEPTED' },
       });
     }
 
     // Prevent duplicate registration
     const existing = await prisma.eventRegistration.findUnique({
-      where: { eventId_email: { eventId, email: data.email } },
+      where: { eventId_email: { eventId, email: core.email } },
     });
     if (existing) {
       if (existing.status === 'CANCELLED') {
-        // Re-register: restore and issue new QR token
-        return prisma.eventRegistration.update({
+        // Re-register: restore, issue a new QR token, and take the details
+        // supplied this time — the earlier ones may well be out of date.
+        const restored = await prisma.eventRegistration.update({
           where: { id: existing.id },
-          data: { status: 'CONFIRMED', qrToken: randomUUID(), checkedInAt: null, checkedInBy: null },
+          data: {
+            ...core,
+            ...attribution,
+            customFields,
+            status: 'CONFIRMED',
+            qrToken: randomUUID(),
+            checkedInAt: null,
+            checkedInBy: null,
+          },
         });
+        await this.rememberParticipant(core, customFields);
+        return restored;
       }
       throw new BadRequestError('You are already registered for this event');
     }
 
-    return prisma.eventRegistration.create({
+    const created = await prisma.eventRegistration.create({
       data: {
         eventId,
-        ...data,
+        ...core,
+        ...attribution,
+        customFields,
         qrToken: randomUUID(),
         isInvited: !event.isPublic,
         status: 'CONFIRMED',
       },
     });
+
+    await this.rememberParticipant(core, customFields);
+    return created;
+  }
+
+  /**
+   * Keeps a single profile per person so a returning attendee does not retype
+   * everything. Stored in EventParticipant, which has no relation to User —
+   * attending an event never creates a portal account.
+   */
+  private static async rememberParticipant(
+    core: { name: string; email: string; phone: string | null; organization: string | null; designation: string | null },
+    customFields: Record<string, any>,
+  ) {
+    const profile = {
+      name: core.name,
+      phone: core.phone,
+      organization: core.organization,
+      designation: core.designation,
+      lastSeenAt: new Date(),
+    };
+    try {
+      const previous = await prisma.eventParticipant.findUnique({
+        where: { email: core.email },
+        select: { customFields: true },
+      });
+      // Merge rather than replace: a later event asking fewer questions must not
+      // wipe answers captured by an earlier one.
+      const merged = {
+        ...(previous?.customFields && typeof previous.customFields === 'object' ? previous.customFields : {}),
+        ...customFields,
+      };
+      await prisma.eventParticipant.upsert({
+        where: { email: core.email },
+        create: { email: core.email, ...profile, customFields: merged },
+        update: { ...profile, customFields: merged },
+      });
+    } catch (err) {
+      // Prefill is a convenience. Never fail a registration over it.
+      console.error('Failed to record participant profile:', err);
+    }
+  }
+
+  /**
+   * Keeps only the keys the event actually declares, so a caller cannot post
+   * arbitrary JSON into the row, and enforces the fields marked required.
+   */
+  private static validateCustomFields(
+    definitions: any,
+    submitted?: Record<string, any>,
+    enforceRequired = true,
+  ) {
+    const fields = Array.isArray(definitions) ? definitions : [];
+    if (!fields.length) return {};
+
+    const answers: Record<string, any> = {};
+    const missing: string[] = [];
+
+    for (const field of fields) {
+      if (!field?.key) continue;
+      const raw = submitted?.[field.key];
+      const value = typeof raw === 'string' ? raw.trim() : raw;
+      const isBlank = value === undefined || value === null || value === '' || value === false;
+
+      if (enforceRequired && field.required && isBlank) {
+        missing.push(field.label || field.key);
+        continue;
+      }
+      if (!isBlank) answers[field.key] = value;
+    }
+
+    if (missing.length) {
+      throw new BadRequestError(`Please fill in: ${missing.join(', ')}`);
+    }
+    return answers;
   }
 
   static async cancelRegistration(eventId: string, registrationId: string) {

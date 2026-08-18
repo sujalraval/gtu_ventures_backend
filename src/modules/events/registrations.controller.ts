@@ -11,8 +11,41 @@ export class RegistrationsController {
     res.json({ success: true, data });
   });
 
+  static requestOtp = asyncHandler(async (req: Request, res: Response) => {
+    const data = await RegistrationsService.requestEmailOtp(
+      req.params['eventId'] as string,
+      req.body?.email,
+    );
+    res.json({ success: true, data });
+  });
+
+  static verifyOtp = asyncHandler(async (req: Request, res: Response) => {
+    const data = await RegistrationsService.verifyEmailOtp(
+      req.params['eventId'] as string,
+      req.body?.email,
+      req.body?.code,
+    );
+    res.json({ success: true, data });
+  });
+
+  // Public: the caller must present a verification token proving the email.
   static register = asyncHandler(async (req: Request, res: Response) => {
-    const data = await RegistrationsService.register(req.params['eventId'] as string, req.body);
+    const data = await RegistrationsService.register(
+      req.params['eventId'] as string,
+      req.body,
+      { requireVerifiedEmail: true },
+    );
+    res.status(201).json({ success: true, data });
+  });
+
+  // Staff adding an attendee by hand — already authenticated, so no OTP, and
+  // the event's required extra questions are not enforced at the desk.
+  static registerManual = asyncHandler(async (req: Request, res: Response) => {
+    const data = await RegistrationsService.register(
+      req.params['eventId'] as string,
+      req.body,
+      { enforceRequiredFields: false },
+    );
     res.status(201).json({ success: true, data });
   });
 

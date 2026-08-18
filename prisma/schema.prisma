@@ -2398,6 +2398,9 @@ model Event {
   coverImage           String?
   tags                 String[]    @default([])
   agenda               Json?
+  registrationFields   Json? // [{ key, label, type, required, options[] }] — extra fields on the public registration form
+  certificateTemplate  Json? // { enabled, title, programmeLine, bodyText, accentColor, logos[], signatories[] }
+  registrationOptions  Json? // { phone, organization, designation } — show/hide the built-in optional fields
   organiserName        String?
   organiserEmail       String?
   createdBy            String
@@ -2426,6 +2429,15 @@ model EventRegistration {
   qrToken      String             @unique // UUID used in QR code
   status       RegistrationStatus @default(CONFIRMED)
   isInvited    Boolean            @default(false) // came via invite
+  customFields Json? // { [key]: value } — answers to Event.registrationFields
+  // Derived server-side from the verified email at registration time.
+  // startupName is a snapshot, not a foreign key: participant rows stay
+  // decoupled from the ERP, and a later rename cannot rewrite attendance history.
+  participantType String  @default("PARTICIPANT") // PARTICIPANT | FOUNDER
+  startupName     String?
+  certificateNo        String?   @unique
+  certificateIssuedAt  DateTime?
+  certificateEmailedAt DateTime?
   checkedInAt  DateTime?
   checkedInBy  String? // admin user id who scanned
   notes        String?
@@ -3036,4 +3048,38 @@ model WebBoardMember {
   updatedAt    DateTime @updatedAt
 
   @@index([order])
+}
+
+/// Account-free email verification for public event registration. Deliberately
+/// keyed by email rather than userId: a student registering for one event must
+/// not end up with a portal User account and StartupProfile.
+model EventEmailOtp {
+  id         String    @id @default(uuid())
+  email      String
+  codeHash   String
+  attempts   Int       @default(0)
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([email])
+  @@index([expiresAt])
+}
+
+/// A person who attends events. Deliberately outside the ERP user space: a
+/// student who registers for one event must never become a portal User with a
+/// StartupProfile. Keyed by email, which is what the OTP proves.
+model EventParticipant {
+  id           String    @id @default(uuid())
+  email        String    @unique
+  name         String
+  phone        String?
+  organization String?
+  designation  String?
+  customFields Json? // last answers by field key, reused to prefill later events
+  lastSeenAt   DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([email])
 }

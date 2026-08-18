@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { EventsService } from './events.service';
 import asyncHandler from '../../common/utils/asyncHandler';
+import { NotFoundError } from '../../common/utils/apiError';
 
 export class EventsController {
   static getAll = asyncHandler(async (req: Request, res: Response) => {
@@ -19,8 +20,22 @@ export class EventsController {
     res.json({ success: true, data: event });
   });
 
+  static getPublicList = asyncHandler(async (_req: Request, res: Response) => {
+    const events = await EventsService.getPublicEvents();
+    res.json({ success: true, data: events });
+  });
+
   static getPublicDetails = asyncHandler(async (req: Request, res: Response) => {
     const event = await EventsService.getEventById(req.params['id'] as string);
+
+    // This route is unauthenticated, so an event that has not been announced
+    // must not leak its venue, agenda or organiser contact to anyone holding
+    // the id. Invite-only events are addressed by email, not by this page.
+    const readable = ['PUBLISHED', 'ONGOING', 'COMPLETED'];
+    if (!event.isPublic || !readable.includes(event.status)) {
+      throw new NotFoundError('Event not found');
+    }
+
     const publicDetails = {
       id: event.id,
       title: event.title,
@@ -38,6 +53,17 @@ export class EventsController {
       coverImage: event.coverImage,
       tags: event.tags,
       agenda: event.agenda,
+      registrationFields: event.registrationFields ?? [],
+      // Defaults keep the built-in fields visible on events created before
+      // these toggles existed.
+      registrationOptions: {
+        phone: true,
+        organization: true,
+        designation: true,
+        ...(event.registrationOptions && typeof event.registrationOptions === 'object'
+          ? (event.registrationOptions as any)
+          : {}),
+      },
       organiserName: event.organiserName,
       organiserEmail: event.organiserEmail,
     };

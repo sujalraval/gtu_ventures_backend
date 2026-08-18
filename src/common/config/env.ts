@@ -18,6 +18,8 @@ const envSchema = z.object({
   SMTP_PASS: z.string(),
   EMAIL_FROM: z.string().default(''),
   ALLOWED_ORIGINS: z.string().optional().transform((val) => val?.split(',') || []),
+  // Public website origin — used to build certificate verification links.
+  PUBLIC_SITE_URL: z.string().default('https://gtuventures.vercel.app'),
 });
 
 const parsedEnv = envSchema.safeParse(process.env);

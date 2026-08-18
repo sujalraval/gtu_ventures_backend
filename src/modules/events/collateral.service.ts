@@ -19,6 +19,7 @@ interface CollateralEvent {
   description: string | null;
   organiserName: string | null;
   organiserEmail: string | null;
+  registrationFields: any;
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -47,24 +48,41 @@ export async function generateAttendeeCSV(eventId: string): Promise<{ csv: strin
     orderBy: [{ status: 'asc' }, { createdAt: 'asc' }],
   });
 
+  // One extra column per question this event asked, so the organiser gets the
+  // college / enrolment answers in the same sheet rather than having to dig
+  // them out of the JSON.
+  const extraFields: any[] = Array.isArray(ev.registrationFields) ? ev.registrationFields : [];
+
+  const csvCell = (v: any) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+
   const headers = [
-    'QR Token', 'Name', 'Email', 'Phone', 'Organisation',
+    'QR Token', 'Name', 'Email', 'Phone', 'Organisation', 'Designation',
+    'Type', 'Startup',
+    ...extraFields.map(f => f.label || f.key),
     'Status', 'Checked In', 'Check-In Time', 'Registered At',
   ];
 
-  const rows = registrations.map(r => [
-    r.qrToken,
-    `"${(r.name || '').replace(/"/g, '""')}"`,
-    r.email,
-    r.phone || '',
-    `"${(r.organization || '').replace(/"/g, '""')}"`,
-    r.status,
-    r.checkedInAt ? 'Yes' : 'No',
-    r.checkedInAt ? fmtDateTime(r.checkedInAt) : '',
-    fmtDateTime(r.createdAt),
-  ]);
+  const rows = registrations.map(r => {
+    const answers = (r.customFields || {}) as Record<string, any>;
+    return [
+      r.qrToken,
+      csvCell(r.name),
+      r.email,
+      r.phone || '',
+      csvCell(r.organization),
+      csvCell(r.designation),
+      r.participantType || 'PARTICIPANT',
+      csvCell(r.startupName),
+      ...extraFields.map(f => csvCell(answers[f.key])),
+      r.status,
+      r.checkedInAt ? 'Yes' : 'No',
+      r.checkedInAt ? fmtDateTime(r.checkedInAt) : '',
+      fmtDateTime(r.createdAt),
+    ];
+  });
 
-  const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+  // Admin-defined labels may contain commas, so quote the header row too.
+  const csv = [headers.map(csvCell).join(','), ...rows.map(r => r.join(','))].join('\n');
   const filename = `attendees_${ev.code}_${ev.startDate.toISOString().slice(0, 10)}.csv`;
 
   return { csv, filename };
