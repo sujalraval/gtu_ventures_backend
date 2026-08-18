@@ -968,6 +968,28 @@ export class ApplicationsService {
           approvedAt: (nextStatus === ApplicationStatus.APPROVED || nextStatus === ApplicationStatus.SELECTED_FOR_PITCH) ? new Date() : undefined
         };
 
+        const reviewPayload = {
+          reviewerId,
+          recommendation,
+          comments,
+          uspNote,
+          scores: {
+            screeningScore: Number(screeningScore),
+            businessScore: Number(businessScore),
+            marketScore: Number(marketScore),
+            innovationScore: Number(innovationScore),
+            feasibilityScore: Number(feasibilityScore),
+            totalScore: Number(totalScore)
+          },
+          submittedAt: new Date()
+        };
+
+        if (revisionForm === 'E') updateData.formEReviews = reviewPayload;
+        else if (revisionForm === 'F') updateData.formFReviews = reviewPayload;
+        else if (revisionForm === 'G') updateData.formGReviews = reviewPayload;
+        else if (revisionForm === 'H') updateData.formHReviews = reviewPayload;
+
+
         // Set specific form approval flag if recommendation is ACCEPT
         if (recommendation === 'ACCEPT' || recommendation === 'SELECTED_FOR_PITCH') {
           if (revisionForm === 'A') updateData.isFormAApproved = true;

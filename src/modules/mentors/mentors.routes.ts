@@ -1,8 +1,12 @@
 import { Router } from 'express';
 import { MentorsController } from './mentors.controller';
+import { authenticate } from '../../common/middleware/auth.middleware';
 
 const router = Router();
 const controller = new MentorsController();
+
+// Secure all routes
+router.use(authenticate);
 
 // Directory
 router.get('/directory', controller.getDirectory);

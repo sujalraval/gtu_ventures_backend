@@ -14,6 +14,7 @@ const ADMIN_ROLES = ['SUPER_ADMIN', 'ADMIN'];
 
 router.get('/', authenticate, EventsController.getAll);
 router.get('/trash', authenticate, authorize(ADMIN_ROLES), EventsController.getDeleted);
+router.get('/:id/public', EventsController.getPublicDetails);
 router.get('/:id', authenticate, EventsController.getById);
 
 router.post('/', authenticate, authorize(ADMIN_ROLES), EventsController.create);

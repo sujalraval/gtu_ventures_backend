@@ -150,6 +150,12 @@ export class VcService {
   // ── Showcase ───────────────────────────────────────────────────────────────
 
   async getShowcase(vcUserId: string) {
+    const user = await prisma.user.findUnique({
+      where: { id: vcUserId },
+      select: { role: true }
+    });
+    const isAdmin = user?.role === "ADMIN" || user?.role === "SUPER_ADMIN";
+
     const firm = await prisma.vcFirm.findUnique({ where: { userId: vcUserId } });
 
     const startups = await prisma.startupApplication.findMany({
@@ -195,6 +201,7 @@ export class VcService {
 
     return startups.map((s) => {
       const interest = interestMap.get(s.userId);
+      const hasNda = isAdmin || (interest?.ndaAccepted === true);
       const latestRevenue = s.user.startupProgressReports[0]?.revenue;
       return {
         id: s.userId,
@@ -203,8 +210,8 @@ export class VcService {
         description: s.briefAbout,
         sector: s.mainSector,
         stage: s.stage,
-        founder: s.formB?.founders?.[0]?.name || s.fullName,
-        revenueYTD: latestRevenue ? `₹${(latestRevenue / 100000).toFixed(1)} Lakhs` : "N/A",
+        founder: hasNda ? (s.formB?.founders?.[0]?.name || s.fullName) : "[NDA Required]",
+        revenueYTD: hasNda ? (latestRevenue ? `₹${(latestRevenue / 100000).toFixed(1)} Lakhs` : "N/A") : "[NDA Required]",
         hasInterest: !!interest,
         interestId: interest?.id || null,
         pipelineStage: interest?.pipelineStage || null,

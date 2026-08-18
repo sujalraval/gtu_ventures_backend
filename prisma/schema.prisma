@@ -490,40 +490,40 @@ model GeneratedAgreement {
 }
 
 model Grant {
-  id                 String                   @id @default(uuid())
-  name               String
-  code               String                   @unique
-  type               String
-  source             String
-  agency             String
-  schemeId           String
-  sectors            String[]
-  totalAmount        Float
-  maxPerStartup      Float
-  cycle              String
-  fy                 String
-  status             String                   @default("Draft")
-  trancheAllowed     Boolean                  @default(false)
-  noOfTranches       Int                      @default(0)
-  ucMandatory        Boolean                  @default(true)
-  auditRequired      Boolean                  @default(false)
-  matchingFund       Boolean                  @default(false)
-  recoveryClause     Boolean                  @default(true)
-  utilisationPeriod  Int?                     @default(30)
-  utilisationPurpose String?
-  bankDetails        String?
-  approvalAuthority  String?
-  startDate          DateTime
-  endDate            DateTime
-  createdAt          DateTime                 @default(now())
-  updatedAt          DateTime                 @updatedAt
-  disbursementMode   String?
-  approvalDate       DateTime?
-  approvalRef        String?
-  approvalRemarks    String?
-  closureDate        DateTime?
-  deletedAt          DateTime?
-  milestoneTemplates Json?
+  id                  String                   @id @default(uuid())
+  name                String
+  code                String                   @unique
+  type                String
+  source              String
+  agency              String
+  schemeId            String
+  sectors             String[]
+  totalAmount         Float
+  maxPerStartup       Float
+  cycle               String
+  fy                  String
+  status              String                   @default("Draft")
+  trancheAllowed      Boolean                  @default(false)
+  noOfTranches        Int                      @default(0)
+  ucMandatory         Boolean                  @default(true)
+  auditRequired       Boolean                  @default(false)
+  matchingFund        Boolean                  @default(false)
+  recoveryClause      Boolean                  @default(true)
+  utilisationPeriod   Int?                     @default(30)
+  utilisationPurpose  String?
+  bankDetails         String?
+  approvalAuthority   String?
+  startDate           DateTime
+  endDate             DateTime
+  createdAt           DateTime                 @default(now())
+  updatedAt           DateTime                 @updatedAt
+  disbursementMode    String?
+  approvalDate        DateTime?
+  approvalRef         String?
+  approvalRemarks     String?
+  closureDate         DateTime?
+  deletedAt           DateTime?
+  milestoneTemplates  Json?
   scheme              Scheme                   @relation(fields: [schemeId], references: [id])
   allocations         GrantAllocation[]
   receipts            GrantReceipt[]
@@ -917,6 +917,10 @@ model StartupApplication {
   isFormFApproved         Boolean                 @default(false)
   isFormGApproved         Boolean                 @default(false)
   isFormHApproved         Boolean                 @default(false)
+  formEReviews            Json?
+  formFReviews            Json?
+  formGReviews            Json?
+  formHReviews            Json?
   cohortId                String?
   additionalDocs          Json?
   gstin                   String?
@@ -1126,19 +1130,19 @@ model UCBudgetHead {
 }
 
 model User {
-  id                     String                   @id @default(uuid())
-  email                  String                   @unique
+  id                     String                      @id @default(uuid())
+  email                  String                      @unique
   password               String?
   name                   String?
-  isSetupComplete        Boolean                  @default(false)
-  isActive               Boolean                  @default(true)
+  isSetupComplete        Boolean                     @default(false)
+  isActive               Boolean                     @default(true)
   lastLogin              DateTime?
-  role                   Role                     @default(STARTUP)
-  createdAt              DateTime                 @default(now())
-  updatedAt              DateTime                 @default(now()) @updatedAt
+  role                   Role                        @default(STARTUP)
+  createdAt              DateTime                    @default(now())
+  updatedAt              DateTime                    @default(now()) @updatedAt
   deletedAt              DateTime?
-  coworkingCredits       Float                    @default(10)
-  coworkingDailyLimit    Float                    @default(4)
+  coworkingCredits       Float                       @default(10)
+  coworkingDailyLimit    Float                       @default(4)
   adminProfile           AdminProfile?
   applicationReviews     ApplicationReview[]
   cohorts                Cohort[]
@@ -1155,8 +1159,8 @@ model User {
   inventoryAllocations   InventoryAllocation[]
   Message                Message[]
   milestones             Milestone[]
-  assignedApplications   StartupApplication[]     @relation("StartupApplication_assignedToIdToUser")
-  startupApplication     StartupApplication?      @relation("StartupApplication_userIdToUser")
+  assignedApplications   StartupApplication[]        @relation("StartupApplication_assignedToIdToUser")
+  startupApplication     StartupApplication?         @relation("StartupApplication_userIdToUser")
   startupProfile         StartupProfile?
   startupProgressReports StartupProgressReport[]
   ThreadParticipant      ThreadParticipant[]
@@ -1174,27 +1178,27 @@ model User {
   verificationTokens     VerificationToken[]
   sessions               UserSession[]
   mentorProfile          MentorProfile?
-  mentorAssignments      MentorshipAssignment[]   @relation("MentorshipAssignment_mentor")
-  startupAssignments     MentorshipAssignment[]   @relation("MentorshipAssignment_startup")
-  mentorSessions         MentorshipSession[]      @relation("MentorshipSession_mentor")
-  startupSessions        MentorshipSession[]      @relation("MentorshipSession_startup")
+  mentorAssignments      MentorshipAssignment[]      @relation("MentorshipAssignment_mentor")
+  startupAssignments     MentorshipAssignment[]      @relation("MentorshipAssignment_startup")
+  mentorSessions         MentorshipSession[]         @relation("MentorshipSession_mentor")
+  startupSessions        MentorshipSession[]         @relation("MentorshipSession_startup")
   mentorAvailabilities   MentorAvailability[]
-  createdEvents          Event[]              @relation("EventCreator")
-  pitchDecksSubmitted    PitchDeckSubmission[] @relation("PitchDeckStartup")
-  pitchDecksReviewed     PitchDeckSubmission[] @relation("PitchDeckReviewer")
-  scheduleSlots          EventScheduleSlot[]  @relation("SlotStartup")
-  judgeAssignments       JudgeAssignment[]    @relation("JudgeAssignments")
-  judgeScores            StartupScore[]       @relation("JudgeScores")
-  scoresReceived         StartupScore[]       @relation("StartupScoresReceived")
+  createdEvents          Event[]                     @relation("EventCreator")
+  pitchDecksSubmitted    PitchDeckSubmission[]       @relation("PitchDeckStartup")
+  pitchDecksReviewed     PitchDeckSubmission[]       @relation("PitchDeckReviewer")
+  scheduleSlots          EventScheduleSlot[]         @relation("SlotStartup")
+  judgeAssignments       JudgeAssignment[]           @relation("JudgeAssignments")
+  judgeScores            StartupScore[]              @relation("JudgeScores")
+  scoresReceived         StartupScore[]              @relation("StartupScoresReceived")
   announcementsSent      Announcement[]              @relation("AnnouncementSender")
   notificationLogs       NotificationLog[]           @relation("NotificationRecipient")
-  templatesCreated       NotificationTemplate[]       @relation("TemplateCreator")
-  eventAnnouncements     EventAnnouncement[]          @relation("EventAnnouncementCreator")
-  eventRsvps             EventAnnouncementRSVP[]      @relation("EventRSVPStartup")
-  eventFeedbacks         EventAnnouncementFeedback[]  @relation("EventFeedbackStartup")
+  templatesCreated       NotificationTemplate[]      @relation("TemplateCreator")
+  eventAnnouncements     EventAnnouncement[]         @relation("EventAnnouncementCreator")
+  eventRsvps             EventAnnouncementRSVP[]     @relation("EventRSVPStartup")
+  eventFeedbacks         EventAnnouncementFeedback[] @relation("EventFeedbackStartup")
   vcFirm                 VcFirm?
-  vcInterestsReceived    VcInterest[]                 @relation("VcInterestStartup")
-  vcMeetingsReceived     VcMeeting[]                  @relation("VcMeetingStartup")
+  vcInterestsReceived    VcInterest[]                @relation("VcInterestStartup")
+  vcMeetingsReceived     VcMeeting[]                 @relation("VcMeetingStartup")
 
   @@index([deletedAt])
 }
@@ -1490,16 +1494,16 @@ model UtilisationEntry {
 }
 
 model UserSession {
-  id           String   @id @default(uuid())
-  userId       String
-  tokenHash    String   @unique
-  family       String
-  deviceInfo   String?
-  expiresAt    DateTime
-  createdAt    DateTime @default(now())
-  lastUsedAt   DateTime @default(now())
-  isRevoked    Boolean  @default(false)
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id         String   @id @default(uuid())
+  userId     String
+  tokenHash  String   @unique
+  family     String
+  deviceInfo String?
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  lastUsedAt DateTime @default(now())
+  isRevoked  Boolean  @default(false)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([family])
@@ -1986,25 +1990,25 @@ model AnnouncementType {
 }
 
 model EventAnnouncement {
-  id           String                      @id @default(uuid())
+  id           String    @id @default(uuid())
   title        String
-  content      String                      @db.Text
-  type         String                      @default("GENERAL")
+  content      String    @db.Text
+  type         String    @default("GENERAL")
   scheduledAt  DateTime?
   durationMin  Int?
   location     String?
-  isVirtual    Boolean                     @default(false)
+  isVirtual    Boolean   @default(false)
   maxSeats     Int?
   targetCohort String?
   speakerName  String?
   createdBy    String
-  createdAt    DateTime                    @default(now())
-  updatedAt    DateTime                    @updatedAt
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
   deletedAt    DateTime?
 
-  creator      User                        @relation("EventAnnouncementCreator", fields: [createdBy], references: [id])
-  rsvps        EventAnnouncementRSVP[]
-  feedbacks    EventAnnouncementFeedback[]
+  creator   User                        @relation("EventAnnouncementCreator", fields: [createdBy], references: [id])
+  rsvps     EventAnnouncementRSVP[]
+  feedbacks EventAnnouncementFeedback[]
 
   @@index([type])
   @@index([createdBy])
@@ -2012,16 +2016,16 @@ model EventAnnouncement {
 }
 
 model EventAnnouncementRSVP {
-  id             String            @id @default(uuid())
+  id             String     @id @default(uuid())
   announcementId String
   startupId      String
-  status         RSVPStatus        @default(GOING)
-  attended       Boolean           @default(false)
-  createdAt      DateTime          @default(now())
-  updatedAt      DateTime          @updatedAt
+  status         RSVPStatus @default(GOING)
+  attended       Boolean    @default(false)
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
 
-  announcement   EventAnnouncement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
-  startup        User              @relation("EventRSVPStartup", fields: [startupId], references: [id], onDelete: Cascade)
+  announcement EventAnnouncement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  startup      User              @relation("EventRSVPStartup", fields: [startupId], references: [id], onDelete: Cascade)
 
   @@unique([announcementId, startupId])
   @@index([announcementId])
@@ -2029,16 +2033,16 @@ model EventAnnouncementRSVP {
 }
 
 model EventAnnouncementFeedback {
-  id             String            @id @default(uuid())
+  id             String   @id @default(uuid())
   announcementId String
   startupId      String
   startupName    String
   rating         Int
-  comment        String?           @db.Text
-  createdAt      DateTime          @default(now())
+  comment        String?  @db.Text
+  createdAt      DateTime @default(now())
 
-  announcement   EventAnnouncement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
-  startup        User              @relation("EventFeedbackStartup", fields: [startupId], references: [id], onDelete: Cascade)
+  announcement EventAnnouncement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  startup      User              @relation("EventFeedbackStartup", fields: [startupId], references: [id], onDelete: Cascade)
 
   @@unique([announcementId, startupId])
   @@index([announcementId])
@@ -2070,43 +2074,43 @@ enum NotificationStatus {
 
 // Bulk announcements sent by admins
 model Announcement {
-  id          String               @id @default(uuid())
-  title       String
-  body        String               @db.Text
-  audience    AnnouncementAudience @default(ALL_STARTUPS)
-  cohortId    String?              // if audience = SPECIFIC_COHORT
-  schemeId    String?              // if audience = SPECIFIC_SCHEME
-  channel     NotificationChannel  @default(EMAIL)
-  sentBy      String               // User.id of admin who sent
-  recipientCount Int               @default(0)
-  sentAt      DateTime             @default(now())
-  createdAt   DateTime             @default(now())
+  id             String               @id @default(uuid())
+  title          String
+  body           String               @db.Text
+  audience       AnnouncementAudience @default(ALL_STARTUPS)
+  cohortId       String? // if audience = SPECIFIC_COHORT
+  schemeId       String? // if audience = SPECIFIC_SCHEME
+  channel        NotificationChannel  @default(EMAIL)
+  sentBy         String // User.id of admin who sent
+  recipientCount Int                  @default(0)
+  sentAt         DateTime             @default(now())
+  createdAt      DateTime             @default(now())
 
-  sender      User                 @relation("AnnouncementSender", fields: [sentBy], references: [id])
-  logs        NotificationLog[]
+  sender User              @relation("AnnouncementSender", fields: [sentBy], references: [id])
+  logs   NotificationLog[]
 }
 
 // Reusable email/in-app templates with merge fields
 model NotificationTemplate {
   id          String              @id @default(uuid())
   name        String              @unique
-  subject     String?             // for email
+  subject     String? // for email
   body        String              @db.Text
   channel     NotificationChannel @default(EMAIL)
-  mergeFields String[]            @default([])  // list of {{field_name}} tokens used
+  mergeFields String[]            @default([]) // list of {{field_name}} tokens used
   isActive    Boolean             @default(true)
   createdBy   String
   createdAt   DateTime            @default(now())
   updatedAt   DateTime            @updatedAt
 
-  creator     User                @relation("TemplateCreator", fields: [createdBy], references: [id])
+  creator User @relation("TemplateCreator", fields: [createdBy], references: [id])
 }
 
 // Per-recipient delivery log for announcements and ad-hoc emails
 model NotificationLog {
   id             String              @id @default(uuid())
   announcementId String?
-  recipientId    String?             // User.id (null for external)
+  recipientId    String? // User.id (null for external)
   recipientEmail String
   subject        String?
   channel        NotificationChannel @default(EMAIL)
@@ -2116,8 +2120,8 @@ model NotificationLog {
   readAt         DateTime?
   createdAt      DateTime            @default(now())
 
-  announcement   Announcement?       @relation(fields: [announcementId], references: [id], onDelete: SetNull)
-  recipient      User?               @relation("NotificationRecipient", fields: [recipientId], references: [id], onDelete: SetNull)
+  announcement Announcement? @relation(fields: [announcementId], references: [id], onDelete: SetNull)
+  recipient    User?         @relation("NotificationRecipient", fields: [recipientId], references: [id], onDelete: SetNull)
 
   @@index([announcementId])
   @@index([recipientId])
@@ -2375,40 +2379,40 @@ enum InviteStatus {
 }
 
 model Event {
-  id                   String               @id @default(uuid())
-  code                 String               @unique
+  id                   String      @id @default(uuid())
+  code                 String      @unique
   title                String
   type                 EventType
-  status               EventStatus          @default(DRAFT)
-  mode                 EventMode            @default(IN_PERSON)
-  description          String?              @db.Text
+  status               EventStatus @default(DRAFT)
+  mode                 EventMode   @default(IN_PERSON)
+  description          String?     @db.Text
   venue                String?
   virtualLink          String?
   startDate            DateTime
   endDate              DateTime
   registrationDeadline DateTime?
   maxAttendees         Int?
-  isPublic             Boolean              @default(true)
-  targetCohorts        String[]             @default([])
-  targetSchemes        String[]             @default([])
+  isPublic             Boolean     @default(true)
+  targetCohorts        String[]    @default([])
+  targetSchemes        String[]    @default([])
   coverImage           String?
-  tags                 String[]             @default([])
+  tags                 String[]    @default([])
   agenda               Json?
   organiserName        String?
   organiserEmail       String?
   createdBy            String
   deletedAt            DateTime?
-  createdAt            DateTime             @default(now())
-  updatedAt            DateTime             @updatedAt
+  createdAt            DateTime    @default(now())
+  updatedAt            DateTime    @updatedAt
 
-  creator              User                 @relation("EventCreator", fields: [createdBy], references: [id])
-  registrations        EventRegistration[]
-  invites              EventInvite[]
-  pitchDecks           PitchDeckSubmission[]
-  scheduleSlots        EventScheduleSlot[]  @relation("EventSchedule")
-  scorecardCriteria    ScorecardCriteria[]  @relation("EventCriteria")
-  judgeAssignments     JudgeAssignment[]    @relation("EventJudges")
-  scores               StartupScore[]       @relation("EventScores")
+  creator           User                  @relation("EventCreator", fields: [createdBy], references: [id])
+  registrations     EventRegistration[]
+  invites           EventInvite[]
+  pitchDecks        PitchDeckSubmission[]
+  scheduleSlots     EventScheduleSlot[]   @relation("EventSchedule")
+  scorecardCriteria ScorecardCriteria[]   @relation("EventCriteria")
+  judgeAssignments  JudgeAssignment[]     @relation("EventJudges")
+  scores            StartupScore[]        @relation("EventScores")
 }
 
 model EventRegistration {
@@ -2419,16 +2423,16 @@ model EventRegistration {
   phone        String?
   organization String?
   designation  String?
-  qrToken      String             @unique               // UUID used in QR code
+  qrToken      String             @unique // UUID used in QR code
   status       RegistrationStatus @default(CONFIRMED)
-  isInvited    Boolean            @default(false)       // came via invite
+  isInvited    Boolean            @default(false) // came via invite
   checkedInAt  DateTime?
-  checkedInBy  String?                                  // admin user id who scanned
+  checkedInBy  String? // admin user id who scanned
   notes        String?
   createdAt    DateTime           @default(now())
   updatedAt    DateTime           @updatedAt
 
-  event        Event              @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
   @@unique([eventId, email])
   @@index([eventId])
@@ -2445,7 +2449,7 @@ model EventInvite {
   createdAt DateTime     @default(now())
   updatedAt DateTime     @updatedAt
 
-  event     Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
   @@unique([eventId, email])
   @@index([eventId])
@@ -2462,24 +2466,24 @@ enum PitchDeckStatus {
 model PitchDeckSubmission {
   id            String          @id @default(uuid())
   eventId       String
-  startupId     String                              // User.id of STARTUP role
+  startupId     String // User.id of STARTUP role
   version       Int             @default(1)
   fileName      String
-  filePath      String                              // server file path
-  fileSize      Int?                                // bytes
+  filePath      String // server file path
+  fileSize      Int? // bytes
   mimeType      String?
   status        PitchDeckStatus @default(PENDING)
-  isActive      Boolean         @default(true)     // only one active per startup per event
+  isActive      Boolean         @default(true) // only one active per startup per event
   reviewerNotes String?         @db.Text
-  reviewedBy    String?                             // admin User.id
+  reviewedBy    String? // admin User.id
   reviewedAt    DateTime?
   submittedAt   DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
 
-  event         Event           @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  startup       User            @relation("PitchDeckStartup", fields: [startupId], references: [id])
-  reviewer      User?           @relation("PitchDeckReviewer", fields: [reviewedBy], references: [id])
-  scheduleSlot  EventScheduleSlot?
+  event        Event              @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  startup      User               @relation("PitchDeckStartup", fields: [startupId], references: [id])
+  reviewer     User?              @relation("PitchDeckReviewer", fields: [reviewedBy], references: [id])
+  scheduleSlot EventScheduleSlot?
 
   @@index([eventId])
   @@index([startupId])
@@ -2487,22 +2491,22 @@ model PitchDeckSubmission {
 }
 
 model EventScheduleSlot {
-  id              String    @id @default(uuid())
-  eventId         String
-  startupId       String                              // User.id of STARTUP
-  pitchDeckId     String?   @unique                    // optional link to accepted deck
-  position        Int                                 // 1-based presentation order
-  scheduledTime   DateTime?                           // exact time slot
-  durationMins    Int       @default(10)              // presentation duration
-  bufferMins      Int       @default(5)               // Q&A / buffer after slot
-  notes           String?   @db.Text
-  emailSentAt     DateTime?                           // when schedule email was sent
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  id            String    @id @default(uuid())
+  eventId       String
+  startupId     String // User.id of STARTUP
+  pitchDeckId   String?   @unique // optional link to accepted deck
+  position      Int // 1-based presentation order
+  scheduledTime DateTime? // exact time slot
+  durationMins  Int       @default(10) // presentation duration
+  bufferMins    Int       @default(5) // Q&A / buffer after slot
+  notes         String?   @db.Text
+  emailSentAt   DateTime? // when schedule email was sent
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
-  event           Event     @relation("EventSchedule", fields: [eventId], references: [id], onDelete: Cascade)
-  startup         User      @relation("SlotStartup", fields: [startupId], references: [id])
-  pitchDeck       PitchDeckSubmission? @relation(fields: [pitchDeckId], references: [id], onDelete: SetNull)
+  event     Event                @relation("EventSchedule", fields: [eventId], references: [id], onDelete: Cascade)
+  startup   User                 @relation("SlotStartup", fields: [startupId], references: [id])
+  pitchDeck PitchDeckSubmission? @relation(fields: [pitchDeckId], references: [id], onDelete: SetNull)
 
   @@unique([eventId, position])
   @@unique([eventId, startupId])
@@ -2539,19 +2543,19 @@ model VcFirm {
 }
 
 model VcInterest {
-  id             String               @id @default(uuid())
-  vcFirmId       String
-  startupId      String
-  pipelineStage  String               @default("LEAD")
-  ndaAccepted    Boolean              @default(false)
-  ndaAcceptedAt  DateTime?
-  notes          String?
-  createdAt      DateTime             @default(now())
-  updatedAt      DateTime             @updatedAt
-  vcFirm         VcFirm               @relation(fields: [vcFirmId], references: [id], onDelete: Cascade)
-  startup        User                 @relation("VcInterestStartup", fields: [startupId], references: [id])
-  meetings       VcMeeting[]
-  outcome        VcInvestmentOutcome?
+  id            String               @id @default(uuid())
+  vcFirmId      String
+  startupId     String
+  pipelineStage String               @default("LEAD")
+  ndaAccepted   Boolean              @default(false)
+  ndaAcceptedAt DateTime?
+  notes         String?
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+  vcFirm        VcFirm               @relation(fields: [vcFirmId], references: [id], onDelete: Cascade)
+  startup       User                 @relation("VcInterestStartup", fields: [startupId], references: [id])
+  meetings      VcMeeting[]
+  outcome       VcInvestmentOutcome?
 
   @@unique([vcFirmId, startupId])
   @@index([vcFirmId])
@@ -2559,24 +2563,24 @@ model VcInterest {
 }
 
 model VcMeeting {
-  id            String      @id @default(uuid())
-  vcFirmId      String
-  startupId     String
-  interestId    String?
-  title         String
-  scheduledAt   DateTime
-  durationMins  Int         @default(60)
-  mode          String      @default("ONLINE")
-  meetingLink   String?
-  calendarLink  String?
-  location      String?
-  notes         String?
-  status        String      @default("SCHEDULED")
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
-  vcFirm        VcFirm      @relation(fields: [vcFirmId], references: [id], onDelete: Cascade)
-  startup       User        @relation("VcMeetingStartup", fields: [startupId], references: [id])
-  interest      VcInterest? @relation(fields: [interestId], references: [id], onDelete: SetNull)
+  id           String      @id @default(uuid())
+  vcFirmId     String
+  startupId    String
+  interestId   String?
+  title        String
+  scheduledAt  DateTime
+  durationMins Int         @default(60)
+  mode         String      @default("ONLINE")
+  meetingLink  String?
+  calendarLink String?
+  location     String?
+  notes        String?
+  status       String      @default("SCHEDULED")
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  vcFirm       VcFirm      @relation(fields: [vcFirmId], references: [id], onDelete: Cascade)
+  startup      User        @relation("VcMeetingStartup", fields: [startupId], references: [id])
+  interest     VcInterest? @relation(fields: [interestId], references: [id], onDelete: SetNull)
 
   @@index([vcFirmId])
   @@index([startupId])
@@ -2601,16 +2605,16 @@ model VcInvestmentOutcome {
 model ScorecardCriteria {
   id          String   @id @default(uuid())
   eventId     String
-  name        String                        // e.g. "Innovation", "Market Potential"
+  name        String // e.g. "Innovation", "Market Potential"
   description String?  @db.Text
   maxScore    Int      @default(10)
-  weight      Float    @default(1.0)        // multiplier for weighted total
-  position    Int      @default(1)          // display order
+  weight      Float    @default(1.0) // multiplier for weighted total
+  position    Int      @default(1) // display order
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  event       Event    @relation("EventCriteria", fields: [eventId], references: [id], onDelete: Cascade)
-  scores      StartupScore[]
+  event  Event          @relation("EventCriteria", fields: [eventId], references: [id], onDelete: Cascade)
+  scores StartupScore[]
 
   @@unique([eventId, name])
   @@index([eventId])
@@ -2620,12 +2624,12 @@ model ScorecardCriteria {
 model JudgeAssignment {
   id        String   @id @default(uuid())
   eventId   String
-  judgeId   String                          // User.id (role MENTOR or any assigned user)
-  startupId String?                         // null = judge scores ALL startups
+  judgeId   String // User.id (role MENTOR or any assigned user)
+  startupId String? // null = judge scores ALL startups
   createdAt DateTime @default(now())
 
-  event     Event    @relation("EventJudges", fields: [eventId], references: [id], onDelete: Cascade)
-  judge     User     @relation("JudgeAssignments", fields: [judgeId], references: [id])
+  event Event @relation("EventJudges", fields: [eventId], references: [id], onDelete: Cascade)
+  judge User  @relation("JudgeAssignments", fields: [judgeId], references: [id])
 
   @@unique([eventId, judgeId, startupId])
   @@index([eventId])
@@ -2639,15 +2643,15 @@ model StartupScore {
   criteriaId  String
   judgeId     String
   startupId   String
-  score       Float                         // 0 – criteria.maxScore
+  score       Float // 0 – criteria.maxScore
   comment     String?  @db.Text
   submittedAt DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  event       Event              @relation("EventScores", fields: [eventId], references: [id], onDelete: Cascade)
-  criteria    ScorecardCriteria  @relation(fields: [criteriaId], references: [id], onDelete: Cascade)
-  judge       User               @relation("JudgeScores", fields: [judgeId], references: [id])
-  startup     User               @relation("StartupScoresReceived", fields: [startupId], references: [id])
+  event    Event             @relation("EventScores", fields: [eventId], references: [id], onDelete: Cascade)
+  criteria ScorecardCriteria @relation(fields: [criteriaId], references: [id], onDelete: Cascade)
+  judge    User              @relation("JudgeScores", fields: [judgeId], references: [id])
+  startup  User              @relation("StartupScoresReceived", fields: [startupId], references: [id])
 
   @@unique([eventId, criteriaId, judgeId, startupId])
   @@index([eventId])
@@ -2656,7 +2660,6 @@ model StartupScore {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-
 
 // ==========================================
 // WEBSITE MANAGEMENT MODULE MODELS (PREFIXED)
@@ -2669,12 +2672,12 @@ enum WebRole {
 }
 
 model WebUser {
-  id            Int        @id @default(autoincrement())
-  email         String     @unique
+  id            Int           @id @default(autoincrement())
+  email         String        @unique
   password_hash String
   role          WebRole       @default(VIEWER)
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @updatedAt
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
   auditLogs     WebAuditLog[]
 }
 
@@ -2702,7 +2705,7 @@ model WebSetting {
 model WebAuditLog {
   id        Int      @id @default(autoincrement())
   userId    Int?
-  user      WebUser?    @relation(fields: [userId], references: [id])
+  user      WebUser? @relation(fields: [userId], references: [id])
   action    String
   entity    String
   entityId  String?
@@ -2737,15 +2740,15 @@ model WebStartup {
   team       Json? // Array of { name, role }
   mentors    String?
 
-  publishState String   @default("PUBLISHED") // DRAFT, REVIEW, PUBLISHED, ARCHIVED
-  
+  publishState String @default("PUBLISHED") // DRAFT, REVIEW, PUBLISHED, ARCHIVED
+
   dateOfIncubation    DateTime?
   stageAtIncubation   String?
   schemeParticipation String?
   innovationUSP       String?
-  
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model WebMentor {
@@ -2783,7 +2786,7 @@ enum WebPartnerType {
 }
 
 model WebPartner {
-  id       Int         @id @default(autoincrement())
+  id       Int            @id @default(autoincrement())
   name     String
   emoji    String?
   link     String?
@@ -2978,4 +2981,57 @@ model WebLead {
   status      String   @default("NEW")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+// ── Public Website: Inventory / Facilities Showcase ───────────────────────────
+
+model WebInventoryCategory {
+  id           Int      @id @default(autoincrement())
+  name         String
+  slug         String?  @unique
+  description  String?
+  icon         String?
+  order        Int      @default(0)
+  publishState String   @default("PUBLISHED")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  items WebInventoryItem[]
+
+  @@index([order])
+}
+
+model WebInventoryItem {
+  id            Int      @id @default(autoincrement())
+  categoryId    Int?
+  name          String
+  imagePath     String?
+  description   String?
+  specification String?
+  quantity      String?
+  make          String?
+  order         Int      @default(0)
+  publishState  String   @default("PUBLISHED")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  category WebInventoryCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  @@index([categoryId])
+  @@index([order])
+}
+
+model WebBoardMember {
+  id           Int      @id @default(autoincrement())
+  title        String
+  role         String?
+  description  String?
+  photo        String?
+  initials     String?
+  order        Int      @default(0)
+  publishState String   @default("PUBLISHED")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([order])
 }

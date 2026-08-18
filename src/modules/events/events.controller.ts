@@ -19,6 +19,31 @@ export class EventsController {
     res.json({ success: true, data: event });
   });
 
+  static getPublicDetails = asyncHandler(async (req: Request, res: Response) => {
+    const event = await EventsService.getEventById(req.params['id'] as string);
+    const publicDetails = {
+      id: event.id,
+      title: event.title,
+      type: event.type,
+      status: event.status,
+      mode: event.mode,
+      description: event.description,
+      venue: event.venue,
+      virtualLink: event.virtualLink,
+      startDate: event.startDate,
+      endDate: event.endDate,
+      registrationDeadline: event.registrationDeadline,
+      maxAttendees: event.maxAttendees,
+      isPublic: event.isPublic,
+      coverImage: event.coverImage,
+      tags: event.tags,
+      agenda: event.agenda,
+      organiserName: event.organiserName,
+      organiserEmail: event.organiserEmail,
+    };
+    res.json({ success: true, data: publicDetails });
+  });
+
   static create = asyncHandler(async (req: Request, res: Response) => {
     const userId = (req as any).user?.id;
     const event = await EventsService.createEvent(req.body, userId);

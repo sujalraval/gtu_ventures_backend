@@ -63,6 +63,12 @@ websiteManagementRouter.use('/users', usersRoutes);
 import verticalsRoutes from './verticals/verticals.routes';
 websiteManagementRouter.use('/verticals', verticalsRoutes);
 
+import inventoryRoutes from './inventory/inventory.routes';
+websiteManagementRouter.use('/inventory', inventoryRoutes);
+
+import boardRoutes from './board/board.routes';
+websiteManagementRouter.use('/board', boardRoutes);
+
 import statsRoutes from './stats/stats.routes';
 websiteManagementRouter.use('/stats', statsRoutes);
 

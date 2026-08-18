@@ -1,7 +1,13 @@
 import { Router } from 'express';
 import { FinanceController } from './finance.controller';
+import { authenticate, authorize } from '../../common/middleware/auth.middleware';
 
 const router = Router();
+const ADMIN_ROLES = ['SUPER_ADMIN', 'ADMIN'];
+
+// Secure all routes in this sub-router
+router.use(authenticate);
+router.use(authorize(ADMIN_ROLES));
 
 // 1. Chart of Accounts Configuration
 router.get('/accounts', FinanceController.getChartOfAccounts);
