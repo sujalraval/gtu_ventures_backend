@@ -6,6 +6,7 @@ import QRCode from 'qrcode';
 import { PassThrough } from 'stream';
 import prisma from '../../lib/prisma';
 import { config } from '../../common/config/env';
+import { resolveUploadPath } from '../../common/config/paths';
 import { sendEmail } from '../../common/utils/mailer';
 import { NotFoundError, BadRequestError } from '../../common/utils/apiError';
 
@@ -59,12 +60,8 @@ const fmtDate = (d: Date) =>
  * degrades to a gap rather than crashing every certificate in the batch.
  */
 function resolveUpload(webPath?: string): string | null {
-  if (!webPath || typeof webPath !== 'string') return null;
-  if (/^https?:\/\//i.test(webPath)) return null; // pdfkit cannot fetch remote images
-  const clean = webPath.replace(/^\/+/, '');
-  if (!clean.startsWith('uploads/')) return null;
-  const abs = path.join(__dirname, '../../../', clean);
-  return fs.existsSync(abs) ? abs : null;
+  const abs = resolveUploadPath(webPath);
+  return abs && fs.existsSync(abs) ? abs : null;
 }
 
 function fillPlaceholders(text: string, vars: Record<string, string>) {

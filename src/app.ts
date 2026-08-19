@@ -5,6 +5,7 @@ import morgan from 'morgan';
 import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 import path from 'path';
+import { UPLOADS_DIR } from './common/config/paths';
 import fs from 'fs';
 import { config } from './common/config/env';
 import { errorHandler } from './common/middleware/error.middleware';
@@ -87,7 +88,7 @@ app.use(cors({
 // Body Parsing Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+app.use('/uploads', express.static(UPLOADS_DIR));
 app.use('/api/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // Serve Static Files from 'public' (Frontend Build)

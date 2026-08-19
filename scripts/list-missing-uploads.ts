@@ -13,8 +13,9 @@ import 'dotenv/config';
 import fs from 'fs';
 import path from 'path';
 import prisma from '../src/lib/prisma';
+import { resolveUploadPath } from '../src/common/config/paths';
 
-const UPLOADS_ROOT = path.join(__dirname, '../uploads');
+import { UPLOADS_DIR as UPLOADS_ROOT } from '../src/common/config/paths';
 const FULL = process.argv.includes('--full');
 const CSV = process.argv.includes('--csv');
 
@@ -32,9 +33,8 @@ const SOURCES: { label: string; model: string; column: string; labelColumn?: str
 ];
 
 function existsOnDisk(webPath: string) {
-  const clean = String(webPath).replace(/^\/+/, '');
-  if (!clean.startsWith('uploads/')) return true; // external URL — not ours to check
-  return fs.existsSync(path.join(UPLOADS_ROOT, clean.slice('uploads/'.length)));
+  const abs = resolveUploadPath(webPath);
+  return abs ? fs.existsSync(abs) : true; // external URL — not ours to check
 }
 
 async function main() {

@@ -74,6 +74,9 @@ jobs:
           host: 82.112.226.201
           username: gtuventures-apply
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          # Without this the step's exit code comes from the LAST command only,
+          # so a failed `prisma migrate deploy` still reported a green deploy.
+          script_stop: true
           script: |
             export NVM_DIR="$HOME/.nvm"
             if [ -s "$NVM_DIR/nvm.sh" ]; then
@@ -99,8 +102,12 @@ jobs:
             SMTP_PASS=${{ secrets.SMTP_PASS }}
             EMAIL_FROM=${{ secrets.EMAIL_FROM }}
             ALLOWED_ORIGINS=${{ secrets.ALLOWED_ORIGINS || 'https://apply.gtuventures.com' }}
+            UPLOADS_DIR=${{ secrets.UPLOADS_DIR || '/home/gtuventures-apply/uploads' }}
             QUICK_EKYC_API_KEY=${{ secrets.QUICK_EKYC_API_KEY }}
             EOF
+
+            # Lives outside the rsync target on purpose — see paths.ts.
+            mkdir -p /home/gtuventures-apply/uploads
 
             which pm2 || npm install -g pm2
 

@@ -1,12 +1,12 @@
 import multer from 'multer';
 import path from 'path';
 
-import fs from 'fs';
+import { ensureUploadsDir } from '../config/paths';
 
-const uploadDir = 'uploads/';
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
+// Resolved from UPLOADS_DIR so production can keep files outside the directory
+// the deploy rsyncs over. Previously this was the relative string 'uploads/',
+// which resolved against cwd — i.e. inside the deploy target.
+const uploadDir = ensureUploadsDir();
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
