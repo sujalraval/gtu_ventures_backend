@@ -1,6 +1,7 @@
 import { randomUUID, randomInt } from 'crypto';
 import bcrypt from 'bcryptjs';
 import * as jwt from 'jsonwebtoken';
+import QRCode from 'qrcode';
 import { RegistrationStatus, InviteStatus } from '@prisma/client';
 import prisma from '../../lib/prisma';
 import { config } from '../../common/config/env';
@@ -161,6 +162,66 @@ export class RegistrationsService {
       alreadyRegistered: !!existing && existing.status !== 'CANCELLED',
       qrToken: existing && existing.status !== 'CANCELLED' ? existing.qrToken : null,
     };
+  }
+
+  /**
+   * Confirmation with the QR ticket attached. The QR goes in as an inline
+   * image *and* a real attachment, so it survives clients that block remote
+   * or embedded images — and the token is printed as text underneath in case
+   * both fail.
+   *
+   * Never allowed to fail a registration: the person has their place either
+   * way, and can recover the ticket by verifying their email again.
+   */
+  private static async sendRegistrationEmail(registration: any, event: any) {
+    try {
+      const qr = await QRCode.toBuffer(registration.qrToken, { margin: 1, width: 320 });
+      const when = event.startDate
+        ? new Date(event.startDate).toLocaleString('en-IN', {
+            day: '2-digit', month: 'long', year: 'numeric',
+            hour: '2-digit', minute: '2-digit',
+          })
+        : '';
+
+      const row = (label: string, value?: string | null) =>
+        value ? `<tr><td style="padding:4px 12px 4px 0;color:#718096;">${label}</td><td style="padding:4px 0;color:#2D3748;"><b>${value}</b></td></tr>` : '';
+
+      const html = `
+        <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px; max-width: 560px;">
+          <h2 style="color: #2D3748; margin-top:0;">You're registered</h2>
+          <p>Hi ${registration.name}, your place at <b>${event.title}</b> is confirmed.</p>
+
+          <table style="font-size:14px;border-collapse:collapse;margin:16px 0;">
+            ${row('When', when)}
+            ${row('Venue', event.venue)}
+            ${row('Registered as', registration.email)}
+          </table>
+
+          <p style="margin-bottom:8px;">Show this QR code at the entrance for check-in:</p>
+          <div style="text-align:center;padding:16px;background:#f7fafc;border-radius:8px;">
+            <img src="cid:registration-qr" alt="Your QR code" width="220" height="220" style="display:block;margin:0 auto;" />
+            <p style="font-family:monospace;font-size:11px;color:#718096;word-break:break-all;margin:12px 0 0;">
+              ${registration.qrToken}
+            </p>
+          </div>
+
+          <p style="font-size:12px;color:#718096;margin-top:20px;">
+            Can't see the code? It's also attached to this email. Keep this message handy
+            on the day — you'll need it to check in.
+          </p>
+          <p style="font-size:12px;color:#718096;">GTU Ventures, Gujarat Technological University</p>
+        </div>
+      `;
+
+      await sendEmail(
+        registration.email,
+        `Registration confirmed — ${event.title}`,
+        html,
+        [{ filename: 'ticket-qr.png', content: qr, cid: 'registration-qr' }],
+      );
+    } catch (err) {
+      console.error('Failed to send registration confirmation:', err);
+    }
   }
 
   /**
@@ -328,6 +389,7 @@ export class RegistrationsService {
           },
         });
         await this.rememberParticipant(core, customFields);
+        await this.sendRegistrationEmail(restored, event);
         return restored;
       }
       throw new BadRequestError('You are already registered for this event');
@@ -346,6 +408,7 @@ export class RegistrationsService {
     });
 
     await this.rememberParticipant(core, customFields);
+    await this.sendRegistrationEmail(created, event);
     return created;
   }
 

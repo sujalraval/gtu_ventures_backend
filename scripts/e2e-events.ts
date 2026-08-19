@@ -68,6 +68,7 @@ async function plantOtp(email: string) {
 
 async function main() {
   const created: { events: string[]; userId?: string } = { events: [] };
+  let aborted: any = null;
 
   try {
     // ── Setup ────────────────────────────────────────────────────────────────
@@ -276,6 +277,10 @@ async function main() {
     const bogus = await api('GET', '/events/certificates/verify/GTUV-NOPE-0001-ZZZZ');
     check('unknown certificate number 404s', bogus.status === 404, bogus.status);
 
+  } catch (err) {
+    // Captured rather than rethrown so cleanup still runs; the finally block
+    // calls process.exit and would otherwise swallow it entirely.
+    aborted = err;
   } finally {
     // ── Cleanup ──────────────────────────────────────────────────────────────
     section('Cleanup');
@@ -295,9 +300,15 @@ async function main() {
     }
     console.log('  test data removed');
 
+    if (aborted) {
+      console.error(`\nRun aborted: ${aborted?.message || aborted}`);
+      if (String(aborted?.message || '').includes('fetch failed')) {
+        console.error(`Is the dev server running on ${API}?`);
+      }
+    }
     console.log(`\n${passed} passed, ${failed} failed`);
     await prisma.$disconnect();
-    process.exit(failed > 0 ? 1 : 0);
+    process.exit(aborted || failed > 0 ? 1 : 0);
   }
 }
 

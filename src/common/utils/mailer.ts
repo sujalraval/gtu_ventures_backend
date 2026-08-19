@@ -13,13 +13,19 @@ export const transporter = nodemailer.createTransport({
   },
 });
 
-export const sendEmail = async (to: string, subject: string, html: string) => {
+export const sendEmail = async (
+  to: string,
+  subject: string,
+  html: string,
+  attachments?: { filename: string; content: Buffer; cid?: string }[],
+) => {
   try {
     const info = await transporter.sendMail({
       from: process.env.EMAIL_FROM,
       to,
       subject,
       html,
+      ...(attachments?.length ? { attachments } : {}),
     });
     console.log('Message sent: %s', info.messageId);
     return info;

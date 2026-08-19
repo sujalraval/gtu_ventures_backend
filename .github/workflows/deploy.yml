@@ -63,7 +63,10 @@ jobs:
           REMOTE_HOST: 82.112.226.201
           REMOTE_USER: gtuventures-apply
           TARGET: "/home/gtuventures-apply/htdocs/gtuventures_bck_prod"
-          EXCLUDE: "/node_modules/, /.git/, /.env"
+          # /uploads/ is gitignored, so it is never in SOURCE — and rsync runs
+          # with --delete. Without this exclusion every deploy wipes every file
+          # users have uploaded: pitch decks, ID proofs, logos, signatures.
+          EXCLUDE: "/node_modules/, /.git/, /.env, /uploads/"
 
       - name: Post Deployment Script
         uses: appleboy/ssh-action@v1.0.3
