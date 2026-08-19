@@ -32,3 +32,33 @@ export const upload = multer({
     }
   },
 });
+
+/**
+ * Spreadsheet uploads for bulk import. Memory storage on purpose: the file is
+ * parsed and discarded, so it never touches the filesystem — nothing to clean
+ * up, and no half-imported sheets accumulating on disk.
+ */
+export const uploadSpreadsheet = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const ok = /\.(xlsx|xls|csv)$/i.test(file.originalname);
+    if (ok) return cb(null, true);
+    cb(new Error('Please upload an .xlsx or .csv file'));
+  },
+});
+
+/**
+ * Bulk logo upload — many image files in one request, written straight to the
+ * uploads directory. Separate from `upload` so the single-file endpoints keep
+ * their own limits.
+ */
+export const uploadManyImages = multer({
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024, files: 500 },
+  fileFilter: (req, file, cb) => {
+    const ok = /\.(jpe?g|png|svg|webp|gif)$/i.test(file.originalname);
+    if (ok) return cb(null, true);
+    cb(new Error(`${file.originalname} is not an image`));
+  },
+});
