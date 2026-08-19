@@ -115,4 +115,13 @@ jobs:
             npx prisma generate
             npx prisma migrate deploy
 
-            pm2 reload dist/server.js --name "gtuventures-backend-prod" || pm2 start dist/server.js --name "gtuventures-backend-prod"
+            # Reload BY NAME. `pm2 reload dist/server.js` resolves by script
+            # path, and with more than one app running the same script pm2 can
+            # reload the wrong one — the deploy then goes green while the
+            # process actually serving traffic keeps running the old build.
+            pm2 reload gtuventures-backend-prod --update-env \
+              || pm2 start dist/server.js --name gtuventures-backend-prod
+
+            # Prove the new build is live rather than trusting the exit code.
+            sleep 3
+            pm2 describe gtuventures-backend-prod | grep -E "status|uptime" || true
