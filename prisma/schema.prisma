@@ -783,9 +783,9 @@ model SPRMasterConfig {
 }
 
 model Scheme {
-  id                  String               @id @default(uuid())
+  id                  String                        @id @default(uuid())
   name                String
-  code                String               @unique
+  code                String                        @unique
   type                String
   providedBy          String?
   organizationName    String?
@@ -806,10 +806,10 @@ model Scheme {
   validityPeriods     Json?
   applicationPeriods  Json?
   requiredDocuments   Json?
-  status              SchemeStatus         @default(DRAFT)
+  status              SchemeStatus                  @default(DRAFT)
   deletedAt           DateTime?
-  createdAt           DateTime             @default(now())
-  updatedAt           DateTime             @updatedAt
+  createdAt           DateTime                      @default(now())
+  updatedAt           DateTime                      @updatedAt
   applicationFormJson Json?
   equityPercentage    Float?
   templates           AgreementTemplate[]
@@ -817,6 +817,7 @@ model Scheme {
   generatedAgreements GeneratedAgreement[]
   grants              Grant[]
   applications        StartupApplication[]
+  schemePreferences   ApplicationSchemePreference[]
 
   @@index([deletedAt])
 }
@@ -832,12 +833,19 @@ model Sector {
 }
 
 model StartupApplication {
-  id                      String                  @id @default(uuid())
-  applicationNo           String?                 @unique
-  status                  ApplicationStatus       @default(DRAFT)
-  currentLevel            ApplicationLevel        @default(LEVEL_1)
-  schemeId                String
-  version                 Int                     @default(1)
+  id                      String                        @id @default(uuid())
+  applicationNo           String?                       @unique
+  status                  ApplicationStatus             @default(DRAFT)
+  currentLevel            ApplicationLevel              @default(LEVEL_1)
+  // The scheme the application actually proceeds in. Set by an admin from the
+  // startup's schemePreferences during onboarding; everything downstream
+  // (agreements, grants, cohorts, milestones) keys off this single value.
+  // Nullable: a SPACE_ONLY application has no scheme at all. Previously this
+  // was non-null and a '00000000-…' sentinel was written instead — a foreign
+  // key pointing at a Scheme row that does not exist.
+  schemeId                String?
+  intent                  ApplicationIntent             @default(SCHEME_ONLY)
+  version                 Int                           @default(1)
   fullName                String
   designation             String
   email                   String
@@ -866,7 +874,7 @@ model StartupApplication {
   ipStatus                String?
   lookingFor              String[]
   website                 String?
-  isRegistered            Boolean                 @default(false)
+  isRegistered            Boolean                       @default(false)
   legalStatus             LegalStatus?
   cin                     String?
   pan                     String?
@@ -884,39 +892,39 @@ model StartupApplication {
   patentDocs              String?
   gstCert                 String?
   financialStatements     String?
-  isEmailVerified         Boolean                 @default(false)
-  isMobileVerified        Boolean                 @default(false)
-  isAadhaarVerified       Boolean                 @default(false)
+  isEmailVerified         Boolean                       @default(false)
+  isMobileVerified        Boolean                       @default(false)
+  isAadhaarVerified       Boolean                       @default(false)
   verifiedDocs            Json?
-  isFormASubmitted        Boolean                 @default(false)
-  isFormBSubmitted        Boolean                 @default(false)
-  isFormCSubmitted        Boolean                 @default(false)
-  isFormDSubmitted        Boolean                 @default(false)
-  isFormESubmitted        Boolean                 @default(false)
-  isFormFSubmitted        Boolean                 @default(false)
-  isFormGSubmitted        Boolean                 @default(false)
-  isFormHSubmitted        Boolean                 @default(false)
-  isDuplicateFlagged      Boolean                 @default(false)
+  isFormASubmitted        Boolean                       @default(false)
+  isFormBSubmitted        Boolean                       @default(false)
+  isFormCSubmitted        Boolean                       @default(false)
+  isFormDSubmitted        Boolean                       @default(false)
+  isFormESubmitted        Boolean                       @default(false)
+  isFormFSubmitted        Boolean                       @default(false)
+  isFormGSubmitted        Boolean                       @default(false)
+  isFormHSubmitted        Boolean                       @default(false)
+  isDuplicateFlagged      Boolean                       @default(false)
   duplicateApplicationIds String[]
-  userId                  String                  @unique
+  userId                  String                        @unique
   assignedToId            String?
   reviewedBy              String?
   rejectionReason         String?
   approvedAt              DateTime?
   graduatedAt             DateTime?
   graduatedBy             String?
-  createdAt               DateTime                @default(now())
-  updatedAt               DateTime                @updatedAt
+  createdAt               DateTime                      @default(now())
+  updatedAt               DateTime                      @updatedAt
   deletedAt               DateTime?
-  isFormBApproved         Boolean                 @default(false)
+  isFormBApproved         Boolean                       @default(false)
   revisionForm            String?
-  isFormAApproved         Boolean                 @default(false)
-  isFormCApproved         Boolean                 @default(false)
-  isFormDApproved         Boolean                 @default(false)
-  isFormEApproved         Boolean                 @default(false)
-  isFormFApproved         Boolean                 @default(false)
-  isFormGApproved         Boolean                 @default(false)
-  isFormHApproved         Boolean                 @default(false)
+  isFormAApproved         Boolean                       @default(false)
+  isFormCApproved         Boolean                       @default(false)
+  isFormDApproved         Boolean                       @default(false)
+  isFormEApproved         Boolean                       @default(false)
+  isFormFApproved         Boolean                       @default(false)
+  isFormGApproved         Boolean                       @default(false)
+  isFormHApproved         Boolean                       @default(false)
   formEReviews            Json?
   formFReviews            Json?
   formGReviews            Json?
@@ -929,10 +937,11 @@ model StartupApplication {
   formC                   ApplicationFormC?
   reviews                 ApplicationReview[]
   generatedAgreements     GeneratedAgreement[]
-  assignedTo              User?                   @relation("StartupApplication_assignedToIdToUser", fields: [assignedToId], references: [id])
-  cohort                  Cohort?                 @relation(fields: [cohortId], references: [id])
-  scheme                  Scheme                  @relation(fields: [schemeId], references: [id])
-  user                    User                    @relation("StartupApplication_userIdToUser", fields: [userId], references: [id], onDelete: Cascade)
+  assignedTo              User?                         @relation("StartupApplication_assignedToIdToUser", fields: [assignedToId], references: [id])
+  cohort                  Cohort?                       @relation(fields: [cohortId], references: [id])
+  scheme                  Scheme?                       @relation(fields: [schemeId], references: [id])
+  schemePreferences       ApplicationSchemePreference[]
+  user                    User                          @relation("StartupApplication_userIdToUser", fields: [userId], references: [id], onDelete: Cascade)
   grantAllocation         StartupGrantAllocation?
   messageThreads          MessageThread[]
 
@@ -1130,19 +1139,19 @@ model UCBudgetHead {
 }
 
 model User {
-  id                     String                      @id @default(uuid())
-  email                  String                      @unique
+  id                     String                        @id @default(uuid())
+  email                  String                        @unique
   password               String?
   name                   String?
-  isSetupComplete        Boolean                     @default(false)
-  isActive               Boolean                     @default(true)
+  isSetupComplete        Boolean                       @default(false)
+  isActive               Boolean                       @default(true)
   lastLogin              DateTime?
-  role                   Role                        @default(STARTUP)
-  createdAt              DateTime                    @default(now())
-  updatedAt              DateTime                    @default(now()) @updatedAt
+  role                   Role                          @default(STARTUP)
+  createdAt              DateTime                      @default(now())
+  updatedAt              DateTime                      @default(now()) @updatedAt
   deletedAt              DateTime?
-  coworkingCredits       Float                       @default(10)
-  coworkingDailyLimit    Float                       @default(4)
+  coworkingCredits       Float                         @default(10)
+  coworkingDailyLimit    Float                         @default(4)
   adminProfile           AdminProfile?
   applicationReviews     ApplicationReview[]
   cohorts                Cohort[]
@@ -1159,8 +1168,9 @@ model User {
   inventoryAllocations   InventoryAllocation[]
   Message                Message[]
   milestones             Milestone[]
-  assignedApplications   StartupApplication[]        @relation("StartupApplication_assignedToIdToUser")
-  startupApplication     StartupApplication?         @relation("StartupApplication_userIdToUser")
+  assignedApplications   StartupApplication[]          @relation("StartupApplication_assignedToIdToUser")
+  startupApplication     StartupApplication?           @relation("StartupApplication_userIdToUser")
+  schemeDecisions        ApplicationSchemePreference[] @relation("ApplicationSchemePreference_decidedByIdToUser")
   startupProfile         StartupProfile?
   startupProgressReports StartupProgressReport[]
   ThreadParticipant      ThreadParticipant[]
@@ -1178,27 +1188,27 @@ model User {
   verificationTokens     VerificationToken[]
   sessions               UserSession[]
   mentorProfile          MentorProfile?
-  mentorAssignments      MentorshipAssignment[]      @relation("MentorshipAssignment_mentor")
-  startupAssignments     MentorshipAssignment[]      @relation("MentorshipAssignment_startup")
-  mentorSessions         MentorshipSession[]         @relation("MentorshipSession_mentor")
-  startupSessions        MentorshipSession[]         @relation("MentorshipSession_startup")
+  mentorAssignments      MentorshipAssignment[]        @relation("MentorshipAssignment_mentor")
+  startupAssignments     MentorshipAssignment[]        @relation("MentorshipAssignment_startup")
+  mentorSessions         MentorshipSession[]           @relation("MentorshipSession_mentor")
+  startupSessions        MentorshipSession[]           @relation("MentorshipSession_startup")
   mentorAvailabilities   MentorAvailability[]
-  createdEvents          Event[]                     @relation("EventCreator")
-  pitchDecksSubmitted    PitchDeckSubmission[]       @relation("PitchDeckStartup")
-  pitchDecksReviewed     PitchDeckSubmission[]       @relation("PitchDeckReviewer")
-  scheduleSlots          EventScheduleSlot[]         @relation("SlotStartup")
-  judgeAssignments       JudgeAssignment[]           @relation("JudgeAssignments")
-  judgeScores            StartupScore[]              @relation("JudgeScores")
-  scoresReceived         StartupScore[]              @relation("StartupScoresReceived")
-  announcementsSent      Announcement[]              @relation("AnnouncementSender")
-  notificationLogs       NotificationLog[]           @relation("NotificationRecipient")
-  templatesCreated       NotificationTemplate[]      @relation("TemplateCreator")
-  eventAnnouncements     EventAnnouncement[]         @relation("EventAnnouncementCreator")
-  eventRsvps             EventAnnouncementRSVP[]     @relation("EventRSVPStartup")
-  eventFeedbacks         EventAnnouncementFeedback[] @relation("EventFeedbackStartup")
+  createdEvents          Event[]                       @relation("EventCreator")
+  pitchDecksSubmitted    PitchDeckSubmission[]         @relation("PitchDeckStartup")
+  pitchDecksReviewed     PitchDeckSubmission[]         @relation("PitchDeckReviewer")
+  scheduleSlots          EventScheduleSlot[]           @relation("SlotStartup")
+  judgeAssignments       JudgeAssignment[]             @relation("JudgeAssignments")
+  judgeScores            StartupScore[]                @relation("JudgeScores")
+  scoresReceived         StartupScore[]                @relation("StartupScoresReceived")
+  announcementsSent      Announcement[]                @relation("AnnouncementSender")
+  notificationLogs       NotificationLog[]             @relation("NotificationRecipient")
+  templatesCreated       NotificationTemplate[]        @relation("TemplateCreator")
+  eventAnnouncements     EventAnnouncement[]           @relation("EventAnnouncementCreator")
+  eventRsvps             EventAnnouncementRSVP[]       @relation("EventRSVPStartup")
+  eventFeedbacks         EventAnnouncementFeedback[]   @relation("EventFeedbackStartup")
   vcFirm                 VcFirm?
-  vcInterestsReceived    VcInterest[]                @relation("VcInterestStartup")
-  vcMeetingsReceived     VcMeeting[]                 @relation("VcMeetingStartup")
+  vcInterestsReceived    VcInterest[]                  @relation("VcInterestStartup")
+  vcMeetingsReceived     VcMeeting[]                   @relation("VcMeetingStartup")
 
   @@index([deletedAt])
 }
@@ -2150,6 +2160,46 @@ enum ApplicationLevel {
   CEO
 }
 
+/// A scheme the startup asked to be considered for. A startup may list several;
+/// an admin marks exactly one SELECTED during onboarding, which is what sets
+/// StartupApplication.schemeId. Later requests are added as further rows rather
+/// than by creating a second application.
+model ApplicationSchemePreference {
+  id            String                 @id @default(uuid())
+  applicationId String
+  schemeId      String
+  priority      Int                    @default(0)
+  status        SchemePreferenceStatus @default(REQUESTED)
+  note          String?
+  decidedById   String?
+  decidedAt     DateTime?
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
+  deletedAt     DateTime?
+
+  application StartupApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  scheme      Scheme             @relation(fields: [schemeId], references: [id])
+  decidedBy   User?              @relation("ApplicationSchemePreference_decidedByIdToUser", fields: [decidedById], references: [id])
+
+  @@unique([applicationId, schemeId])
+  @@index([schemeId])
+  @@index([applicationId, status])
+}
+
+enum SchemePreferenceStatus {
+  REQUESTED
+  SELECTED
+  NOT_SELECTED
+  WITHDRAWN
+}
+
+/// Whether the startup wants a scheme, incubation space, or both.
+enum ApplicationIntent {
+  SCHEME_ONLY
+  SCHEME_WITH_SPACE
+  SPACE_ONLY
+}
+
 enum ApplicationStatus {
   DRAFT
   SUBMITTED
@@ -2419,30 +2469,30 @@ model Event {
 }
 
 model EventRegistration {
-  id           String             @id @default(uuid())
-  eventId      String
-  name         String
-  email        String
-  phone        String?
-  organization String?
-  designation  String?
-  qrToken      String             @unique // UUID used in QR code
-  status       RegistrationStatus @default(CONFIRMED)
-  isInvited    Boolean            @default(false) // came via invite
-  customFields Json? // { [key]: value } — answers to Event.registrationFields
+  id                   String             @id @default(uuid())
+  eventId              String
+  name                 String
+  email                String
+  phone                String?
+  organization         String?
+  designation          String?
+  qrToken              String             @unique // UUID used in QR code
+  status               RegistrationStatus @default(CONFIRMED)
+  isInvited            Boolean            @default(false) // came via invite
+  customFields         Json? // { [key]: value } — answers to Event.registrationFields
   // Derived server-side from the verified email at registration time.
   // startupName is a snapshot, not a foreign key: participant rows stay
   // decoupled from the ERP, and a later rename cannot rewrite attendance history.
-  participantType String  @default("PARTICIPANT") // PARTICIPANT | FOUNDER
-  startupName     String?
-  certificateNo        String?   @unique
+  participantType      String             @default("PARTICIPANT") // PARTICIPANT | FOUNDER
+  startupName          String?
+  certificateNo        String?            @unique
   certificateIssuedAt  DateTime?
   certificateEmailedAt DateTime?
-  checkedInAt  DateTime?
-  checkedInBy  String? // admin user id who scanned
-  notes        String?
-  createdAt    DateTime           @default(now())
-  updatedAt    DateTime           @updatedAt
+  checkedInAt          DateTime?
+  checkedInBy          String? // admin user id who scanned
+  notes                String?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
 
   event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
 

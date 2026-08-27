@@ -42,6 +42,8 @@ router.get('/:id', authenticate, authorize(['SUPER_ADMIN', 'ADMIN', 'STAFF']), A
 router.post('/:id/status', authenticate, authorize(['SUPER_ADMIN', 'ADMIN']), authorizePermission('applications', 'edit'), ApplicationsController.updateStatus);
 router.post('/:id/approve', authenticate, authorize(['SUPER_ADMIN', 'ADMIN']), authorizePermission('applications', 'approve'), ApplicationsController.approve);
 router.post('/:id/reject', authenticate, authorize(['SUPER_ADMIN', 'ADMIN']), authorizePermission('applications', 'approve'), ApplicationsController.reject);
+// Onboarding decision — which requested scheme the startup proceeds in.
+router.post('/:id/scheme-decision', authenticate, authorize(['SUPER_ADMIN', 'ADMIN']), authorizePermission('applications', 'edit'), ApplicationsController.decideScheme);
 router.post('/:id/assign', authenticate, authorize(['SUPER_ADMIN', 'ADMIN']), authorizePermission('applications', 'edit'), ApplicationsController.assign);
 router.post('/:id/review', authenticate, authorize(['SUPER_ADMIN', 'ADMIN', 'STAFF']), authorizePermission('applications', 'edit'), ApplicationsController.submitReview);
 router.post('/:id/verify-docs', authenticate, authorize(['SUPER_ADMIN', 'ADMIN', 'STAFF']), authorizePermission('applications', 'edit'), ApplicationsController.updateVerifiedDocs);

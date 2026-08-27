@@ -6,12 +6,36 @@ import { config } from '../../common/config/env';
 import { sendEmail } from '../../common/utils/mailer';
 import { sseManager } from '../../lib/sseManager';
 
+/**
+ * Written into schemeId when a draft is saved with no scheme picked. It is not
+ * a real Scheme row, so anything that joins on it must exclude it.
+ */
+const SENTINEL_SCHEME_ID = '00000000-0000-0000-0000-000000000000';
+
+const VALID_INTENTS = ['SCHEME_ONLY', 'SCHEME_WITH_SPACE', 'SPACE_ONLY'];
+
+/** Scheme choices plus their scheme names, ordered as the startup ranked them. */
+const schemePreferenceSelect = {
+  select: {
+    id: true,
+    schemeId: true,
+    priority: true,
+    status: true,
+    note: true,
+    decidedAt: true,
+    decidedById: true,
+    scheme: { select: { id: true, name: true, status: true } },
+  },
+  orderBy: { priority: 'asc' as const },
+};
+
 export class ApplicationsService {
   static async getByUserId(userId: string) {
     const application = await prisma.startupApplication.findUnique({
       where: { userId },
       include: { 
         scheme: true,
+        schemePreferences: schemePreferenceSelect,
         formB: {
           include: {
             founders: true,
@@ -44,16 +68,12 @@ export class ApplicationsService {
     const sectorMap = new Map(sectors.map((s: any) => [s.id, s.name]));
     const subSectorMap = new Map(sectors.flatMap((s: any) => s.subSectors).map((ss: any) => [ss.id, ss.name]));
 
-    // Calculate forms completed
+    // Calculate forms completed. A–C only: forms D–H are not in use, and
+    // counting them made a fully complete application read as partial.
     const forms = [
       application.isFormASubmitted,
       application.isFormBSubmitted,
       application.isFormCSubmitted,
-      application.isFormDSubmitted,
-      application.isFormESubmitted,
-      application.isFormFSubmitted,
-      application.isFormGSubmitted,
-      application.isFormHSubmitted,
     ];
     const formsCompleted = forms.filter(Boolean).length;
 
@@ -70,6 +90,7 @@ export class ApplicationsService {
       where: { id },
       include: { 
         scheme: true, 
+        schemePreferences: schemePreferenceSelect,
         user: true,
         formB: {
           include: {
@@ -243,10 +264,48 @@ export class ApplicationsService {
       ...rest
     } = data;
 
+    const intent: string = VALID_INTENTS.includes(data.intent)
+      ? data.intent
+      : (existingApplication?.intent || 'SCHEME_ONLY');
+
+    // A startup can ask to be considered for more than one scheme. Accepts the
+    // new `schemes` array and falls back to the single `scheme` the older
+    // clients send, so an un-updated form keeps working.
+    const schemePreferenceIds: string[] = intent === 'SPACE_ONLY' ? [] : Array.from(
+      new Set(
+        (Array.isArray(data.schemes) ? data.schemes : [data.scheme])
+          .filter((id: any): id is string => typeof id === 'string' && id.trim() !== '')
+          .filter((id: string) => id !== SENTINEL_SCHEME_ID)
+      )
+    );
+
     // Prepare mapped data including handling empty strings for required fields to avoid Prisma errors
+    // Has an admin already put this application into a scheme? If so that
+    // choice, not the startup's ranking, decides schemeId below.
+    const decidedPreference = existingApplication
+      ? await prisma.applicationSchemePreference.findFirst({
+          where: { applicationId: existingApplication.id, status: 'SELECTED' },
+        })
+      : null;
+    const decidedSchemeId = intent === 'SPACE_ONLY' ? null : decidedPreference?.schemeId || null;
+
     const mappedData: any = {
       // Step 1: Scheme
-      schemeId: scheme || existingApplication?.schemeId || '00000000-0000-0000-0000-000000000000',
+      // The startup may list several schemes; schemeId holds the one it is
+      // proceeding in. Until an admin decides, that is the startup's first
+      // choice, so downstream logic (documents, agreements) always has a scheme.
+      // null for SPACE_ONLY — that application has no scheme by definition.
+      // A decision already made wins over the startup's first choice —
+      // otherwise re-submitting a draft silently moves the application back
+      // out of the scheme an admin put it in.
+      schemeId: intent === 'SPACE_ONLY'
+        ? null
+        : (decidedSchemeId
+            || schemePreferenceIds[0]
+            || scheme
+            || existingApplication?.schemeId
+            || null),
+      intent,
       
       // Step 2: Founder Details
       fullName: rest.fullName || existingApplication?.fullName || '',
@@ -358,10 +417,51 @@ export class ApplicationsService {
             });
         }
 
+        // 3. Sync the startup's scheme choices. Rows an admin has already ruled
+        //    on are left alone — a re-submitted draft must not quietly undo a
+        //    decision. Choices dropped from the form are withdrawn rather than
+        //    deleted, so the history of what was asked for survives.
+        //
+        //    Runs for SPACE_ONLY too, with an empty list: switching to
+        //    space-only must withdraw any scheme still outstanding, otherwise
+        //    an admin could pick a scheme for an application that asked for
+        //    none.
+        if (schemePreferenceIds.length || intent === 'SPACE_ONLY') {
+          const existing = await tx.applicationSchemePreference.findMany({
+            where: { applicationId: application.id },
+          });
+
+          for (const [index, schemeId] of schemePreferenceIds.entries()) {
+            const prior = existing.find((p) => p.schemeId === schemeId);
+            if (prior && prior.status !== 'REQUESTED' && prior.status !== 'WITHDRAWN') {
+              await tx.applicationSchemePreference.update({
+                where: { id: prior.id },
+                data: { priority: index },
+              });
+              continue;
+            }
+            await tx.applicationSchemePreference.upsert({
+              where: { applicationId_schemeId: { applicationId: application.id, schemeId } },
+              update: { priority: index, status: 'REQUESTED', deletedAt: null },
+              create: { applicationId: application.id, schemeId, priority: index },
+            });
+          }
+
+          const dropped = existing.filter(
+            (p) => !schemePreferenceIds.includes(p.schemeId) && p.status === 'REQUESTED'
+          );
+          if (dropped.length) {
+            await tx.applicationSchemePreference.updateMany({
+              where: { id: { in: dropped.map((p) => p.id) } },
+              data: { status: 'WITHDRAWN' },
+            });
+          }
+        }
+
         return application;
       });
 
-      // 3. Flag Duplicates (Post-transaction)
+      // 4. Flag Duplicates (Post-transaction)
       if (!isDraft && savedApplication) {
         await this.checkForDuplicates(savedApplication.id, savedApplication.cin, savedApplication.pan);
       }
@@ -838,6 +938,86 @@ export class ApplicationsService {
     return application;
   }
 
+  /**
+   * Onboarding decision: the admin picks which of the startup's requested
+   * schemes it proceeds in. Everything downstream — agreements, grants,
+   * cohorts, milestones — keys off StartupApplication.schemeId, so this is the
+   * one place that value is allowed to change after submission.
+   *
+   * Runs in a transaction: leaving schemeId pointing at one scheme while the
+   * preference rows say another would be worse than failing outright.
+   */
+  static async decideScheme(
+    applicationId: string,
+    schemeId: string,
+    adminId: string,
+    note?: string,
+  ) {
+    const application = await prisma.startupApplication.findUnique({
+      where: { id: applicationId },
+      select: { id: true, status: true, startupName: true, userId: true, intent: true },
+    });
+    if (!application) throw new NotFoundError('Application not found');
+
+    if (application.intent === 'SPACE_ONLY') {
+      throw new BadRequestError(
+        'This startup applied for incubation space only. Ask them to add a scheme before selecting one.',
+      );
+    }
+
+    const scheme = await prisma.scheme.findUnique({
+      where: { id: schemeId },
+      select: { id: true, name: true },
+    });
+    if (!scheme) throw new BadRequestError('That scheme does not exist');
+
+    // findFirst, not findUnique: the soft-delete extension rewrites findUnique
+    // into findFirst, and findFirst does not accept the compound-unique
+    // shorthand key — `applicationId_schemeId` would throw at runtime.
+    const preference = await prisma.applicationSchemePreference.findFirst({
+      where: { applicationId, schemeId },
+    });
+    if (!preference) {
+      throw new BadRequestError(
+        'The startup did not request this scheme. Add it as a choice before selecting it.',
+      );
+    }
+    // A withdrawn choice is one the startup actively removed, so treat it the
+    // same as never requested. Selecting it would put them in a scheme they
+    // took off their own form.
+    if (preference.status === 'WITHDRAWN') {
+      throw new BadRequestError(
+        'The startup withdrew this scheme. Ask them to add it back before selecting it.',
+      );
+    }
+
+    const decidedAt = new Date();
+
+    return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      // Everything else this startup asked for is ruled out, but only the rows
+      // still open — a WITHDRAWN choice stays withdrawn.
+      await tx.applicationSchemePreference.updateMany({
+        where: {
+          applicationId,
+          schemeId: { not: schemeId },
+          status: { in: ['REQUESTED', 'SELECTED'] },
+        },
+        data: { status: 'NOT_SELECTED', decidedById: adminId, decidedAt },
+      });
+
+      await tx.applicationSchemePreference.update({
+        where: { id: preference.id },
+        data: { status: 'SELECTED', decidedById: adminId, decidedAt, note: note || null },
+      });
+
+      return tx.startupApplication.update({
+        where: { id: applicationId },
+        data: { schemeId },
+        include: { scheme: true, schemePreferences: schemePreferenceSelect },
+      });
+    });
+  }
+
   static async updateVerifiedDocs(applicationId: string, verifiedDocs: any) {
     console.log(`[DEBUG] Updating VerifiedDocs for App ${applicationId}:`, JSON.stringify(verifiedDocs, null, 2));
     return await prisma.startupApplication.update({
@@ -1061,6 +1241,7 @@ export class ApplicationsService {
       include: {
         user: true, 
         scheme: true, 
+        schemePreferences: schemePreferenceSelect,
         assignedTo: {
           select: { id: true, name: true, email: true }
         },
@@ -1178,25 +1359,19 @@ export class ApplicationsService {
           { form: 'A', name: 'Basic Details', status: 'pending', progress: 0 },
           { form: 'B', name: 'Incubation Details', status: 'locked', progress: 0 },
           { form: 'C', name: 'Technical Details', status: 'locked', progress: 0 },
-          { form: 'D', name: 'Financial Details', status: 'locked', progress: 0 },
-          { form: 'E', name: 'Team Details', status: 'locked', progress: 0 },
-          { form: 'F', name: 'Milestones', status: 'locked', progress: 0 },
-          { form: 'G', name: 'Documents', status: 'locked', progress: 0 },
-          { form: 'H', name: 'Declaration', status: 'locked', progress: 0 },
-        ],
+                            ],
         stages: []
       };
     }
 
+    // Forms D–H are not in use — they are hidden in the portal and their routes
+    // are gone. They must not be counted here either: overallProgress divides
+    // by forms.length, so including them capped a fully complete application
+    // at 38%.
     const forms = [
       { form: 'A', name: 'Basic Details', status: application.isFormAApproved ? 'completed' : 'pending', progress: application.isFormASubmitted ? 100 : 0 },
       { form: 'B', name: 'Incubation Details', status: application.isFormAApproved ? (application.isFormBApproved ? 'completed' : (application.isFormBSubmitted ? 'pending' : 'pending')) : 'locked', progress: application.isFormBSubmitted ? 100 : 0 },
       { form: 'C', name: 'Incubation Agreement', status: application.isFormBApproved ? (application.isFormCApproved ? 'completed' : (application.isFormCSubmitted ? 'pending' : 'pending')) : 'locked', progress: application.isFormCSubmitted ? 100 : 0 },
-      { form: 'D', name: 'Financial Details', status: application.isFormCApproved ? (application.isFormDApproved ? 'completed' : (application.isFormDSubmitted ? 'pending' : 'pending')) : 'locked', progress: application.isFormDSubmitted ? 100 : 0 },
-      { form: 'E', name: 'Team Details', status: application.isFormDApproved ? (application.isFormEApproved ? 'completed' : (application.isFormESubmitted ? 'pending' : 'pending')) : 'locked', progress: application.isFormESubmitted ? 100 : 0 },
-      { form: 'F', name: 'Milestones', status: application.isFormEApproved ? (application.isFormFApproved ? 'completed' : (application.isFormFSubmitted ? 'pending' : 'pending')) : 'locked', progress: application.isFormFSubmitted ? 100 : 0 },
-      { form: 'G', name: 'Documents', status: application.isFormFApproved ? (application.isFormGApproved ? 'completed' : (application.isFormGSubmitted ? 'pending' : 'pending')) : 'locked', progress: application.isFormGSubmitted ? 100 : 0 },
-      { form: 'H', name: 'Declaration', status: application.isFormGApproved ? (application.isFormHApproved ? 'completed' : (application.isFormHSubmitted ? 'pending' : 'pending')) : 'locked', progress: application.isFormHSubmitted ? 100 : 0 },
     ];
 
     const completedForms = forms.filter(f => f.status === 'completed').length;

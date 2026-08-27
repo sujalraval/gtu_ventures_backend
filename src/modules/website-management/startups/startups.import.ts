@@ -28,10 +28,10 @@ export const COLUMNS: ColumnDef[] = [
   { key: 'email', label: 'Contact email.', example: 'founder@acme.com', width: 24 },
   { key: 'phone', label: 'Contact phone.', example: '9876543210', width: 16 },
   { key: 'website', label: 'Full URL.', example: 'https://acme.com', width: 24 },
-  { key: 'businessModel', label: 'B2B / B2C / B2G etc.', example: 'B2B', width: 14 },
+  { key: 'businessModel', label: 'Who it sells to. Pick from the list, or comma-separate several.', example: 'B2B, SaaS', width: 24 },
   { key: 'problem', label: 'Problem being solved.', example: 'Manual inspection is slow', width: 34 },
   { key: 'market', label: 'Target market.', example: 'Auto component makers', width: 28 },
-  { key: 'revenueModel', label: 'How it earns.', example: 'Subscription', width: 18 },
+  { key: 'revenueModel', label: 'How it earns. Pick from the list, or comma-separate several.', example: 'Subscription, Commission', width: 26 },
   { key: 'technology', label: 'Core technology.', example: 'Computer vision', width: 22 },
   { key: 'traction', label: 'Traction so far.', example: '12 pilot customers', width: 24 },
   { key: 'awards', label: 'Awards and recognitions.', example: 'SSIP Grant 2025', width: 24 },
@@ -72,10 +72,30 @@ function canonical(value: string, allowed: string[]) {
 }
 
 /** Columns that become dropdowns, and where their options come from. */
+// Business and revenue model had no controlled vocabulary anywhere — both are
+// free-text inputs in StartupForm, which is how a company name ended up stored
+// as a business model on the live site. ERP Form A has the only existing list,
+// but it conflates the two concepts under one "Business Model" heading writing
+// into revenueModel; these split them.
+//
+// Unlike stage and publish state, both fields legitimately hold several values,
+// so the dropdown is advisory: the validation below uses errorStyle 'warning',
+// which lets a comma-separated entry through.
+const VALID_BUSINESS_MODELS = [
+  'B2B', 'B2C', 'B2B2C', 'B2G', 'D2C', 'Marketplace', 'Platform', 'SaaS',
+];
+
+const VALID_REVENUE_MODELS = [
+  'Subscription', 'Freemium', 'Transaction Fee', 'Commission', 'Licensing',
+  'Advertising', 'One-time Sale', 'Pay-per-use', 'Services / Consulting',
+];
+
 const DROPDOWNS: Record<string, string[] | 'sectors' | 'schemes'> = {
   stage: VALID_STAGES,
   stageAtIncubation: VALID_STAGES,
   publishState: VALID_STATES,
+  businessModel: VALID_BUSINESS_MODELS,
+  revenueModel: VALID_REVENUE_MODELS,
   sector: 'sectors',
   schemeParticipation: 'schemes',
 };
@@ -159,7 +179,7 @@ export async function buildTemplate(format: 'xlsx' | 'csv' = 'xlsx') {
         showErrorMessage: true,
         errorStyle: 'warning',
         errorTitle: 'Not in the list',
-        error: 'This value is not one of the options. Stage and Publish State must match exactly; sector and scheme will import with a warning.',
+        error: 'This value is not one of the options. Stage and Publish State must match exactly; sector and scheme import with a warning. Business Model and Revenue Model accept several values — comma-separate them.',
       };
     }
   }

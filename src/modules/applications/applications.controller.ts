@@ -3,6 +3,7 @@ import { ApplicationsService } from './applications.service';
 import asyncHandler from '../../common/utils/asyncHandler';
 import { SubmitFormBSchema, SubmitFormCSchema } from './applications.schema';
 import { sseManager } from '../../lib/sseManager';
+import { BadRequestError } from '../../common/utils/apiError';
 
 export class ApplicationsController {
   static getMyApplication = asyncHandler(async (req: Request, res: Response) => {
@@ -153,6 +154,25 @@ export class ApplicationsController {
     res.json({
       success: true,
       data: application
+    });
+  });
+
+  /** Onboarding: pick which of the startup's requested schemes it proceeds in. */
+  static decideScheme = asyncHandler(async (req: Request, res: Response) => {
+    const adminId = (req as any).user.id;
+    const { schemeId, note } = req.body;
+    if (!schemeId || typeof schemeId !== 'string') {
+      throw new BadRequestError('schemeId is required');
+    }
+    const application = await ApplicationsService.decideScheme(
+      req.params.id as string,
+      schemeId,
+      adminId,
+      note,
+    );
+    res.json({
+      success: true,
+      data: application,
     });
   });
 
