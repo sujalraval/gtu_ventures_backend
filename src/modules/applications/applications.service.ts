@@ -308,22 +308,28 @@ export class ApplicationsService {
       intent,
       
       // Step 2: Founder Details
+      //
+      // Only fullName, email and mobile are asked in Form A now. The rest are
+      // collected in Form B, which syncs them back to these same columns — so
+      // they are preserved when present and left NULL when not. They used to
+      // be padded with '' (and dob with new Date(), giving every application a
+      // fictitious date of birth) purely to satisfy NOT NULL.
       fullName: rest.fullName || existingApplication?.fullName || '',
-      designation: rest.designation || existingApplication?.designation || '',
       email: rest.email || existingApplication?.email || '',
       mobile: rest.mobile || existingApplication?.mobile || '',
-      whatsapp: rest.whatsapp || existingApplication?.whatsapp || '',
-      aadhaar: rest.aadhaar || existingApplication?.aadhaar || '',
-      gender: rest.gender || existingApplication?.gender || '',
-      dob: dateOfBirth ? new Date(dateOfBirth) : (existingApplication?.dob || new Date()),
-      highestQualification: rest.highestQualification || existingApplication?.highestQualification || '',
-      fromInstitution: rest.fromInstitution || existingApplication?.fromInstitution || '',
-      addressLine: rest.addressLine || existingApplication?.addressLine || '',
-      locality: rest.locality || existingApplication?.locality || '',
-      city: rest.city || existingApplication?.city || '',
-      district: rest.district || existingApplication?.district || '',
-      state: rest.state || existingApplication?.state || '',
-      pinCode: rest.pinCode || existingApplication?.pinCode || '',
+      designation: rest.designation ?? existingApplication?.designation ?? null,
+      whatsapp: rest.whatsapp ?? existingApplication?.whatsapp ?? null,
+      aadhaar: rest.aadhaar ?? existingApplication?.aadhaar ?? null,
+      gender: rest.gender ?? existingApplication?.gender ?? null,
+      dob: dateOfBirth ? new Date(dateOfBirth) : (existingApplication?.dob ?? null),
+      highestQualification: rest.highestQualification ?? existingApplication?.highestQualification ?? null,
+      fromInstitution: rest.fromInstitution ?? existingApplication?.fromInstitution ?? null,
+      addressLine: rest.addressLine ?? existingApplication?.addressLine ?? null,
+      locality: rest.locality ?? existingApplication?.locality ?? null,
+      city: rest.city ?? existingApplication?.city ?? null,
+      district: rest.district ?? existingApplication?.district ?? null,
+      state: rest.state ?? existingApplication?.state ?? null,
+      pinCode: rest.pinCode ?? existingApplication?.pinCode ?? null,
       
       // Step 3: Startup Details
       startupName: rest.startupName || existingApplication?.startupName || '',
@@ -331,8 +337,10 @@ export class ApplicationsService {
       subSectors: rest.subSectors || existingApplication?.subSectors || [],
       stage: (stage ? (stage as string)?.toUpperCase().replace(/-/g, '_') : existingApplication?.stage || 'IDEA') as StartupStage,
       briefAbout: rest.briefAbout || existingApplication?.briefAbout || '',
-      problemStmt: problemStatement || existingApplication?.problemStmt || '',
-      solution: innovationDescription || existingApplication?.solution || '',
+      // Moved to Form B — NULL rather than '' when unanswered, so the admin
+      // review screen can tell "not asked yet" from "answered blank".
+      problemStmt: problemStatement ?? existingApplication?.problemStmt ?? null,
+      solution: innovationDescription ?? existingApplication?.solution ?? null,
       revenueModel: rest.revenueModel || existingApplication?.revenueModel || [],
       marketSize: rest.marketSize || existingApplication?.marketSize || '',
       ipStatus: rest.ipStatus || existingApplication?.ipStatus || '',
@@ -515,6 +523,29 @@ export class ApplicationsService {
       website,
       sector,
       stage,
+      // Moved here from Form A. Destructured out of formBData because they
+      // live on StartupApplication, not ApplicationFormB — spreading them into
+      // the upsert below would fail on unknown columns.
+      designation,
+      whatsapp,
+      aadhaar,
+      gender,
+      dateOfBirth,
+      highestQualification,
+      fromInstitution,
+      locality,
+      city,
+      district,
+      state,
+      pinCode,
+      subSectors,
+      problemStatement,
+      innovationDescription,
+      revenueModel,
+      marketSize,
+      ipStatus,
+      lookingFor,
+      isRegistered,
       isDraft = false,
       ...formBData 
     } = data;
@@ -531,6 +562,11 @@ export class ApplicationsService {
         application.status !== ApplicationStatus.RE_SUBMISSION_REQUIRED) {
       throw new BadRequestError('Form B can only be submitted for approved or selected applications');
     }
+
+    // StartupApplication.dob means "the applicant's date of birth". Form A no
+    // longer asks, so it follows the lead founder.
+    const leadDob = Array.isArray(founders) ? founders[0]?.dateOfBirth : null;
+    const firstFounderDob = (leadDob && !isNaN(Date.parse(leadDob))) ? new Date(leadDob) : null;
 
     try {
       const savedFormB = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
@@ -551,6 +587,30 @@ export class ApplicationsService {
             website: website || application.website,
             addressLine: registeredAddress || application.addressLine,
             mainSector: sector || application.mainSector,
+
+            // Fields that used to be asked in Form A. `?? application.x` so a
+            // draft save that omits a field leaves the stored value alone
+            // rather than wiping it.
+            designation: designation ?? application.designation,
+            whatsapp: whatsapp ?? application.whatsapp,
+            aadhaar: aadhaar ?? application.aadhaar,
+            gender: gender ?? application.gender,
+            dob: firstFounderDob ?? ((dateOfBirth && !isNaN(Date.parse(dateOfBirth))) ? new Date(dateOfBirth) : application.dob),
+            highestQualification: highestQualification ?? application.highestQualification,
+            fromInstitution: fromInstitution ?? application.fromInstitution,
+            locality: locality ?? application.locality,
+            city: city ?? application.city,
+            district: district ?? application.district,
+            state: state ?? application.state,
+            pinCode: pinCode ?? application.pinCode,
+            subSectors: subSectors ?? application.subSectors,
+            problemStmt: problemStatement ?? application.problemStmt,
+            solution: innovationDescription ?? application.solution,
+            revenueModel: revenueModel ?? application.revenueModel,
+            marketSize: marketSize ?? application.marketSize,
+            ipStatus: ipStatus ?? application.ipStatus,
+            lookingFor: lookingFor ?? application.lookingFor,
+            isRegistered: isRegistered ?? application.isRegistered,
             stage: stage ? (stage as string).toUpperCase().replace(/-/g, '_') as StartupStage : application.stage,
             isFormBSubmitted: isDraft ? application.isFormBSubmitted : true,
             status: isDraft ? application.status : ApplicationStatus.UNDER_REVIEW,
@@ -585,7 +645,14 @@ export class ApplicationsService {
           await tx.applicationFounder.createMany({
             data: founders.map((f: any) => {
               const { id, ...founderData } = f; // Remove frontend-only IDs
-              return { ...founderData, formBId: formB.id };
+              return {
+                ...founderData,
+                formBId: formB.id,
+                // Arrives as a yyyy-mm-dd string; Prisma needs a Date.
+                dateOfBirth: (f.dateOfBirth && !isNaN(Date.parse(f.dateOfBirth)))
+                  ? new Date(f.dateOfBirth)
+                  : null,
+              };
             })
           });
         }

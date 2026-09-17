@@ -4,7 +4,8 @@ import { authenticate, authorize } from '../../common/middleware/auth.middleware
 
 const router = Router({ mergeParams: true });
 const ADMIN_ROLES = ['SUPER_ADMIN', 'ADMIN'];
-const JUDGE_ROLES = ['SUPER_ADMIN', 'ADMIN', 'MENTOR', 'STAFF'];
+// EXPERT is the role a guest panellist gets — external judges hold nothing else.
+const JUDGE_ROLES = ['SUPER_ADMIN', 'ADMIN', 'MENTOR', 'STAFF', 'EXPERT'];
 
 // ── Criteria (admin) ──────────────────────────────────────────────────────────
 router.get('/criteria', authenticate, ScorecardController.getCriteria);

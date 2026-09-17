@@ -7,6 +7,7 @@ import registrationRoutes from './registrations.routes';
 import pitchDeckRoutes from './pitchdeck.routes';
 import scheduleRoutes from './schedule.routes';
 import scorecardRoutes from './scorecard.routes';
+import screeningRoutes from './screening.routes';
 import collateralRoutes from './collateral.routes';
 import certificateRoutes from './certificates.routes';
 import { PitchDeckController } from './pitchdeck.controller';
@@ -51,6 +52,12 @@ router.use('/:eventId/schedule', scheduleRoutes);
 
 // Sub-router: /api/events/:eventId/scorecard
 router.use('/:eventId/scorecard', scorecardRoutes);
+
+// Sub-router: /api/events/:eventId/screening
+// Also mounted without an event id so the "awaiting screening" pool is
+// reachable before a round has been created.
+router.use('/:eventId/screening', screeningRoutes);
+router.use('/screening', screeningRoutes);
 
 // Sub-router: /api/events/:eventId/collateral
 router.use('/:eventId/collateral', collateralRoutes);

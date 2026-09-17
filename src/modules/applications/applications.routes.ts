@@ -4,13 +4,18 @@ import { authenticate, authorize, authorizePermission } from '../../common/middl
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import { UPLOADS_DIR } from '../../common/config/paths';
 
 const router = Router();
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const uploadDir = 'uploads/applications';
+    // UPLOADS_DIR, not a relative 'uploads/applications'. The relative path
+    // resolves inside the deployment directory, which the deploy rsyncs over
+    // with --delete — every application document uploaded here was being
+    // destroyed on the next push. See common/config/paths.ts.
+    const uploadDir = path.join(UPLOADS_DIR, 'applications');
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true });
     }
@@ -22,7 +27,28 @@ const storage = multer.diskStorage({
   },
 });
 
-const upload = multer({ storage });
+/** Pitch decks are PDF-only; supporting documents may also be images. */
+const ALLOWED_UPLOAD_TYPES = new Set([
+  'application/pdf',
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+]);
+
+const upload = multer({
+  storage,
+  // Was unbounded: any authenticated user could fill the disk with one request.
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (file.fieldname === 'pitchDeck' && file.mimetype !== 'application/pdf') {
+      return cb(new Error('The pitch deck must be a PDF.'));
+    }
+    if (!ALLOWED_UPLOAD_TYPES.has(file.mimetype)) {
+      return cb(new Error('Only PDF, JPEG, PNG and WebP files are accepted.'));
+    }
+    cb(null, true);
+  },
+});
 
 // Startup routes
 router.get('/my', authenticate, authorize(['STARTUP']), ApplicationsController.getMyApplication);

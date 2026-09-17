@@ -10,7 +10,7 @@ export const loginSchema = z.object({
 export const requestOTPSchema = z.object({
   body: z.object({
     email: z.string().email(),
-    portal: z.enum(['ADMIN', 'STAFF', 'STARTUP']).optional(),
+    portal: z.enum(['ADMIN', 'STAFF', 'STARTUP', 'JUDGE']).optional(),
   }),
 });
 

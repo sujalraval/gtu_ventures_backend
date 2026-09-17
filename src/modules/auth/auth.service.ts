@@ -11,10 +11,13 @@ function hashToken(token: string): string {
 }
 
 export class AuthService {
-  static async requestOTP(email: string, portal?: 'ADMIN' | 'STAFF' | 'STARTUP') {
+  static async requestOTP(email: string, portal?: 'ADMIN' | 'STAFF' | 'STARTUP' | 'JUDGE') {
     let user = await prisma.user.findUnique({ where: { email } });
 
-    if (!user && (portal === 'ADMIN' || portal === 'STAFF')) {
+    // JUDGE included: a guest panellist is created by an admin invite, never
+    // by signing in. Without this an unknown email would be auto-registered as
+    // a STARTUP and silently gain the startup portal.
+    if (!user && (portal === 'ADMIN' || portal === 'STAFF' || portal === 'JUDGE')) {
       throw new BadRequestError('Access Denied: You must be registered by an administrator to access this portal.');
     }
 
@@ -65,7 +68,13 @@ export class AuthService {
       orderBy: { createdAt: 'desc' },
     });
 
-    if (!tokenRecord) throw new BadRequestError('OTP expired or not found');
+    // A successful verify deletes the token, so "not found" covers three very
+    // different cases: never requested, expired, or already used. The last is
+    // the common one — verify, get redirected, come back and retype the same
+    // code — and the old wording gave no hint that a fresh code was needed.
+    if (!tokenRecord) {
+      throw new BadRequestError('That code has already been used or has expired. Request a new one.');
+    }
 
     const isOtpValid = await bcrypt.compare(otp, tokenRecord.token);
     if (!isOtpValid) throw new BadRequestError('Invalid verification code');

@@ -5,8 +5,12 @@ import { authenticate, authorize } from "../../common/middleware/auth.middleware
 const router = Router();
 
 // Admin routes
-router.get("/all", authenticate, authorize(['ADMIN', 'SUPER_ADMIN']), sprController.getAllSPRs);
-router.post("/assessment/:sprId", authenticate, authorize(['ADMIN', 'SUPER_ADMIN']), sprController.submitAssessment);
+// STAFF included: reviewing progress reports is a staff job, and excluding
+// them here is why the SPR module looked broken from the staff portal.
+// Deliberately role-only, with no authorizePermission — the granular
+// permission tables are unseeded, so adding one would 403 every staff user.
+router.get("/all", authenticate, authorize(['ADMIN', 'SUPER_ADMIN', 'STAFF']), sprController.getAllSPRs);
+router.post("/assessment/:sprId", authenticate, authorize(['ADMIN', 'SUPER_ADMIN', 'STAFF']), sprController.submitAssessment);
 router.get("/config", authenticate, sprController.getMasterConfig);
 
 // Startup routes

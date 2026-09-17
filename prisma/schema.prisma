@@ -201,6 +201,7 @@ model ApplicationFounder {
   linkedIn             String?
   priorVentures        String?
   gender               String?
+  dateOfBirth          DateTime?
   differentlyAbled     Boolean?
   firstGenEntrepreneur Boolean?
   formB                ApplicationFormB @relation(fields: [formBId], references: [id], onDelete: Cascade)
@@ -267,27 +268,28 @@ model City {
 }
 
 model Cohort {
-  id                 String               @id @default(uuid())
-  name               String
-  startDate          DateTime
-  domain             String?
-  budget             Float?
-  schemeId           String
-  managerId          String?
-  status             String               @default("Active")
-  createdAt          DateTime             @default(now())
-  updatedAt          DateTime             @updatedAt
-  endDate            DateTime?
-  milestoneTemplates Json?
-  waitlistSettings   Json?
-  manager            User?                @relation(fields: [managerId], references: [id])
-  scheme             Scheme               @relation(fields: [schemeId], references: [id])
-  meetings           CohortMeeting[]
-  members            CohortMember[]
-  mentors            CohortMentor[]
-  modules            CohortModule[]
-  tasks              CohortTask[]
-  applications       StartupApplication[]
+  id                  String               @id @default(uuid())
+  name                String
+  startDate           DateTime
+  domain              String?
+  budget              Float?
+  schemeId            String
+  managerId           String?
+  status              String               @default("Active")
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  endDate             DateTime?
+  milestoneTemplates  Json?
+  waitlistSettings    Json?
+  manager             User?                @relation(fields: [managerId], references: [id])
+  scheme              Scheme               @relation(fields: [schemeId], references: [id])
+  meetings            CohortMeeting[]
+  members             CohortMember[]
+  mentors             CohortMentor[]
+  modules             CohortModule[]
+  tasks               CohortTask[]
+  applications        StartupApplication[]
+  screeningCandidates ScreeningCandidate[]
 }
 
 model CohortAttendance {
@@ -818,6 +820,7 @@ model Scheme {
   grants              Grant[]
   applications        StartupApplication[]
   schemePreferences   ApplicationSchemePreference[]
+  screeningCandidates ScreeningCandidate[]
 
   @@index([deletedAt])
 }
@@ -847,28 +850,28 @@ model StartupApplication {
   intent                  ApplicationIntent             @default(SCHEME_ONLY)
   version                 Int                           @default(1)
   fullName                String
-  designation             String
+  designation             String?
   email                   String
   mobile                  String
   whatsapp                String?
-  aadhaar                 String
-  gender                  String
-  dob                     DateTime
-  highestQualification    String
-  fromInstitution         String
-  addressLine             String
+  aadhaar                 String?
+  gender                  String?
+  dob                     DateTime?
+  highestQualification    String?
+  fromInstitution         String?
+  addressLine             String?
   locality                String?
-  city                    String
-  district                String
-  state                   String
-  pinCode                 String
+  city                    String?
+  district                String?
+  state                   String?
+  pinCode                 String?
   startupName             String
   mainSector              String
   subSectors              String[]
   stage                   StartupStage
   briefAbout              String
-  problemStmt             String
-  solution                String
+  problemStmt             String?
+  solution                String?
   revenueModel            String[]
   marketSize              String?
   ipStatus                String?
@@ -941,6 +944,7 @@ model StartupApplication {
   cohort                  Cohort?                       @relation(fields: [cohortId], references: [id])
   scheme                  Scheme?                       @relation(fields: [schemeId], references: [id])
   schemePreferences       ApplicationSchemePreference[]
+  screeningCandidacies    ScreeningCandidate[]
   user                    User                          @relation("StartupApplication_userIdToUser", fields: [userId], references: [id], onDelete: Cascade)
   grantAllocation         StartupGrantAllocation?
   messageThreads          MessageThread[]
@@ -1171,6 +1175,7 @@ model User {
   assignedApplications   StartupApplication[]          @relation("StartupApplication_assignedToIdToUser")
   startupApplication     StartupApplication?           @relation("StartupApplication_userIdToUser")
   schemeDecisions        ApplicationSchemePreference[] @relation("ApplicationSchemePreference_decidedByIdToUser")
+  screeningDecisions     ScreeningCandidate[]          @relation("ScreeningDecisions")
   startupProfile         StartupProfile?
   startupProgressReports StartupProgressReport[]
   ThreadParticipant      ThreadParticipant[]
@@ -2273,6 +2278,8 @@ enum StartupStage {
   MVP
   REVENUE
   SCALE
+  PRE_REVENUE
+  GROWTH
 }
 
 enum CoworkingBuildingStatus {
@@ -2392,7 +2399,53 @@ model SessionFeedback {
 
 // ─── Module 6: Events & Demo Day Management ──────────────────────────────────
 
+/// Outcome of a screening panel for one application.
+enum ScreeningOutcome {
+  PENDING
+  SELECTED
+  WAITLISTED
+  REJECTED
+  HOLD
+}
+
+/// An application put in front of a screening panel.
+///
+/// Scoring itself reuses the existing judging stack — ScorecardCriteria,
+/// StartupScore, JudgeAssignment — which keys on the startup's User id. Adding
+/// a candidate also creates an EventScheduleSlot, so judges see it in their
+/// running order with no changes to that code. This model holds only what
+/// screening adds: the link back to the application, who is presenting right
+/// now, and the panel's decision.
+model ScreeningCandidate {
+  id            String           @id @default(uuid())
+  eventId       String
+  applicationId String
+  position      Int              @default(0)
+  isPresenting  Boolean          @default(false)
+  presentedAt   DateTime?
+  outcome       ScreeningOutcome @default(PENDING)
+  schemeId      String?
+  cohortId      String?
+  decisionNote  String?
+  decidedById   String?
+  decidedAt     DateTime?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  deletedAt     DateTime?
+
+  event       Event              @relation("EventScreeningCandidates", fields: [eventId], references: [id], onDelete: Cascade)
+  application StartupApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  scheme      Scheme?            @relation(fields: [schemeId], references: [id])
+  cohort      Cohort?            @relation(fields: [cohortId], references: [id])
+  decidedBy   User?              @relation("ScreeningDecisions", fields: [decidedById], references: [id])
+
+  @@unique([eventId, applicationId])
+  @@index([eventId, outcome])
+  @@index([applicationId])
+}
+
 enum EventType {
+  SCREENING
   DEMO_DAY
   INVESTOR_DAY
   WORKSHOP
@@ -2458,14 +2511,15 @@ model Event {
   createdAt            DateTime    @default(now())
   updatedAt            DateTime    @updatedAt
 
-  creator           User                  @relation("EventCreator", fields: [createdBy], references: [id])
-  registrations     EventRegistration[]
-  invites           EventInvite[]
-  pitchDecks        PitchDeckSubmission[]
-  scheduleSlots     EventScheduleSlot[]   @relation("EventSchedule")
-  scorecardCriteria ScorecardCriteria[]   @relation("EventCriteria")
-  judgeAssignments  JudgeAssignment[]     @relation("EventJudges")
-  scores            StartupScore[]        @relation("EventScores")
+  creator             User                  @relation("EventCreator", fields: [createdBy], references: [id])
+  registrations       EventRegistration[]
+  invites             EventInvite[]
+  pitchDecks          PitchDeckSubmission[]
+  scheduleSlots       EventScheduleSlot[]   @relation("EventSchedule")
+  scorecardCriteria   ScorecardCriteria[]   @relation("EventCriteria")
+  judgeAssignments    JudgeAssignment[]     @relation("EventJudges")
+  scores              StartupScore[]        @relation("EventScores")
+  screeningCandidates ScreeningCandidate[]  @relation("EventScreeningCandidates")
 }
 
 model EventRegistration {
@@ -2689,6 +2743,16 @@ model JudgeAssignment {
   judgeId   String // User.id (role MENTOR or any assigned user)
   startupId String? // null = judge scores ALL startups
   createdAt DateTime @default(now())
+
+  // Guest panellists. A screening judge is often from outside GTU — an
+  // investor, a founder, an industry expert — so they hold a bare EXPERT
+  // account with no other access. Their affiliation belongs to the assignment
+  // rather than the user: the same person may sit on one panel for their firm
+  // and another in a personal capacity.
+  isExternal   Boolean   @default(false)
+  organisation String?
+  designation  String?
+  invitedAt    DateTime?
 
   event Event @relation("EventJudges", fields: [eventId], references: [id], onDelete: Cascade)
   judge User  @relation("JudgeAssignments", fields: [judgeId], references: [id])
