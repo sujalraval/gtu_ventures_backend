@@ -1176,6 +1176,8 @@ model User {
   startupApplication     StartupApplication?           @relation("StartupApplication_userIdToUser")
   schemeDecisions        ApplicationSchemePreference[] @relation("ApplicationSchemePreference_decidedByIdToUser")
   screeningDecisions     ScreeningCandidate[]          @relation("ScreeningDecisions")
+  screeningNotesGiven    ScreeningJudgeNote[]          @relation("ScreeningJudgeNotes")
+  screeningNotesReceived ScreeningJudgeNote[]          @relation("ScreeningNotesReceived")
   startupProfile         StartupProfile?
   startupProgressReports StartupProgressReport[]
   ThreadParticipant      ThreadParticipant[]
@@ -2444,6 +2446,31 @@ model ScreeningCandidate {
   @@index([applicationId])
 }
 
+/// One judge's written verdict on one startup in a screening round.
+///
+/// Scores live in StartupScore, one row per criterion. This is the part that
+/// has no criterion: the overall note and USP observation the Form A review
+/// asked for, kept per judge so the panel chair reads five opinions rather
+/// than one merged blob. Keyed on the startup's User id to match StartupScore.
+model ScreeningJudgeNote {
+  id             String   @id @default(uuid())
+  eventId        String
+  judgeId        String
+  startupId      String
+  note           String?
+  uspNote        String?
+  recommendation String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  event   Event @relation("EventScreeningNotes", fields: [eventId], references: [id], onDelete: Cascade)
+  judge   User  @relation("ScreeningJudgeNotes", fields: [judgeId], references: [id])
+  startup User  @relation("ScreeningNotesReceived", fields: [startupId], references: [id])
+
+  @@unique([eventId, judgeId, startupId])
+  @@index([eventId, startupId])
+}
+
 enum EventType {
   SCREENING
   DEMO_DAY
@@ -2520,6 +2547,7 @@ model Event {
   judgeAssignments    JudgeAssignment[]     @relation("EventJudges")
   scores              StartupScore[]        @relation("EventScores")
   screeningCandidates ScreeningCandidate[]  @relation("EventScreeningCandidates")
+  screeningNotes      ScreeningJudgeNote[]  @relation("EventScreeningNotes")
 }
 
 model EventRegistration {

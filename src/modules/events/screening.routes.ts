@@ -129,6 +129,40 @@ router.post(
   }),
 );
 
+/** Apply the standard Form A assessment rubric to this round. */
+router.post(
+  '/rubric/standard',
+  authenticate,
+  authorize(ADMIN_ROLES),
+  asyncHandler(async (req, res) => {
+    const data = await ScreeningService.applyStandardRubric(req.params['eventId'] as string);
+    res.status(201).json({ success: true, data });
+  }),
+);
+
+/** A judge's own written verdict on a startup. */
+router.post(
+  '/notes',
+  authenticate,
+  authorize(PANEL_ROLES),
+  asyncHandler(async (req, res) => {
+    const judgeId = (req as any).user.id;
+    const data = await ScreeningService.saveJudgeNote(req.params['eventId'] as string, judgeId, req.body);
+    res.json({ success: true, data });
+  }),
+);
+
+router.get(
+  '/notes/mine',
+  authenticate,
+  authorize(PANEL_ROLES),
+  asyncHandler(async (req, res) => {
+    const judgeId = (req as any).user.id;
+    const data = await ScreeningService.getMyNotes(req.params['eventId'] as string, judgeId);
+    res.json({ success: true, data });
+  }),
+);
+
 /** Candidates with aggregated scores and rank. */
 router.get(
   '/board',

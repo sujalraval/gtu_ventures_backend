@@ -17,6 +17,19 @@ import { config } from '../../common/config/env';
  * waiting, tracking who is presenting, and recording the panel's decision.
  */
 
+/**
+ * The rubric the Form A review has always used, so a screening panel scores a
+ * startup on the same five dimensions an internal reviewer would. Weights are
+ * percentages and sum to 100; each criterion is marked out of 100.
+ */
+export const STANDARD_ASSESSMENT_RUBRIC = [
+  { name: 'Initial Screening', description: 'Completeness and basic eligibility', weight: 15, maxScore: 100, position: 1 },
+  { name: 'Business Idea & Model', description: 'Clarity and viability of the business model', weight: 25, maxScore: 100, position: 2 },
+  { name: 'Market Potential', description: 'Size of the opportunity and route to market', weight: 20, maxScore: 100, position: 3 },
+  { name: 'Innovation Level', description: 'Novelty and defensibility of the solution', weight: 25, maxScore: 100, position: 4 },
+  { name: 'Technology Feasibility', description: 'Can it realistically be built and delivered', weight: 15, maxScore: 100, position: 5 },
+];
+
 const candidateInclude = {
   application: {
     select: {
@@ -182,6 +195,70 @@ export class ScreeningService {
     return this.listJudges(eventId);
   }
 
+  /**
+   * Put the standard Form A assessment rubric on a round.
+   *
+   * Explicit rather than automatic on event creation: an admin who has already
+   * written their own criteria should not have them silently joined by five
+   * more. Refuses if any criteria already exist.
+   */
+  static async applyStandardRubric(eventId: string) {
+    await assertScreeningEvent(eventId);
+
+    const existing = await prisma.scorecardCriteria.count({ where: { eventId } });
+    if (existing > 0) {
+      throw new BadRequestError(
+        'This round already has scoring criteria. Remove them first if you want the standard rubric instead.',
+      );
+    }
+
+    await prisma.scorecardCriteria.createMany({
+      data: STANDARD_ASSESSMENT_RUBRIC.map((c) => ({ ...c, eventId })),
+    });
+
+    return prisma.scorecardCriteria.findMany({ where: { eventId }, orderBy: { position: 'asc' } });
+  }
+
+  /**
+   * A judge's written verdict, saved separately from their scores because it
+   * belongs to no single criterion. Upserted so saving again edits rather than
+   * appends.
+   */
+  static async saveJudgeNote(
+    eventId: string,
+    judgeId: string,
+    input: { startupId: string; note?: string; uspNote?: string; recommendation?: string },
+  ) {
+    await assertScreeningEvent(eventId);
+    if (!input.startupId) throw new BadRequestError('startupId is required');
+
+    const onPanel = await prisma.judgeAssignment.findFirst({ where: { eventId, judgeId } });
+    if (!onPanel) throw new BadRequestError('You are not on the panel for this round.');
+
+    return prisma.screeningJudgeNote.upsert({
+      where: { eventId_judgeId_startupId: { eventId, judgeId, startupId: input.startupId } },
+      update: {
+        note: input.note ?? null,
+        uspNote: input.uspNote ?? null,
+        recommendation: input.recommendation ?? null,
+      },
+      create: {
+        eventId,
+        judgeId,
+        startupId: input.startupId,
+        note: input.note ?? null,
+        uspNote: input.uspNote ?? null,
+        recommendation: input.recommendation ?? null,
+      },
+    });
+  }
+
+  /** The signed-in judge's own notes for a round, to restore their screen. */
+  static async getMyNotes(eventId: string, judgeId: string) {
+    await assertScreeningEvent(eventId);
+    return prisma.screeningJudgeNote.findMany({ where: { eventId, judgeId } });
+  }
+
   static async listCandidates(eventId: string) {
     await assertScreeningEvent(eventId);
     return prisma.screeningCandidate.findMany({
@@ -215,7 +292,13 @@ export class ScreeningService {
       select: { applicationId: true, position: true },
     });
     const already = new Set(existing.map((c) => c.applicationId));
-    const toAdd = applications.filter((a) => !already.has(a.id));
+    // findMany with an `in` clause returns rows in database order, not the
+    // order they were requested in. Re-sort to the caller's order so the
+    // running position matches the sequence the admin picked.
+    const requestedOrder = new Map(applicationIds.map((id, i) => [id, i]));
+    const toAdd = applications
+      .filter((a) => !already.has(a.id))
+      .sort((a, b) => (requestedOrder.get(a.id) ?? 0) - (requestedOrder.get(b.id) ?? 0));
     if (toAdd.length === 0) return this.listCandidates(eventId);
 
     let nextPosition = existing.reduce((max, c) => Math.max(max, c.position), 0) + 1;
@@ -431,7 +514,7 @@ export class ScreeningService {
   static async getBoard(eventId: string) {
     await assertScreeningEvent(eventId);
 
-    const [candidates, criteria, scores] = await Promise.all([
+    const [candidates, criteria, scores, notes] = await Promise.all([
       prisma.screeningCandidate.findMany({
         where: { eventId },
         include: candidateInclude,
@@ -439,6 +522,10 @@ export class ScreeningService {
       }),
       prisma.scorecardCriteria.findMany({ where: { eventId }, orderBy: { position: 'asc' } }),
       prisma.startupScore.findMany({ where: { eventId } }),
+      prisma.screeningJudgeNote.findMany({
+        where: { eventId },
+        include: { judge: { select: { id: true, name: true, email: true } } },
+      }),
     ]);
 
     const weightTotal = criteria.reduce((sum, c) => sum + (c.weight || 0), 0);
@@ -471,6 +558,17 @@ export class ScreeningService {
         ...candidate,
         judgesScored: scored.length,
         averageScore: average === null ? null : Math.round(average * 10) / 10,
+        // Each judge's written verdict, so the chair reads the reasoning behind
+        // the number rather than only the number.
+        notes: notes
+          .filter((n) => n.startupId === candidate.application.userId)
+          .map((n) => ({
+            judgeId: n.judgeId,
+            judgeName: n.judge?.name || n.judge?.email,
+            note: n.note,
+            uspNote: n.uspNote,
+            recommendation: n.recommendation,
+          })),
       };
     });
 

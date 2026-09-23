@@ -204,6 +204,58 @@ async function main() {
     live = await ScreeningService.listCandidates(event.id);
     check('the stage can be cleared', live.every((c: any) => !c.isPresenting));
 
+    // ── The standard assessment rubric ────────────────────────────────────────
+    section('Standard assessment rubric');
+
+    const rubric = await ScreeningService.applyStandardRubric(event.id);
+    check('the standard rubric has five criteria', rubric.length === 5, rubric.length);
+    check(
+      'weights sum to 100',
+      rubric.reduce((sum: number, c: any) => sum + c.weight, 0) === 100,
+      rubric.reduce((sum: number, c: any) => sum + c.weight, 0),
+    );
+    check(
+      'it matches the Form A review dimensions',
+      rubric.map((c: any) => c.name).join(' | ') ===
+        'Initial Screening | Business Idea & Model | Market Potential | Innovation Level | Technology Feasibility',
+      rubric.map((c: any) => c.name),
+    );
+    check(
+      'applying it twice is refused rather than duplicating criteria',
+      !!(await rejects(() => ScreeningService.applyStandardRubric(event.id))),
+    );
+
+    // Cleared so the scoring maths below uses its own simple criteria.
+    await prisma.$executeRaw`DELETE FROM "ScorecardCriteria" WHERE "eventId" = ${event.id}`;
+
+    // ── Judges' written verdicts ──────────────────────────────────────────────
+    section('Assessment notes');
+
+    await ScreeningService.saveJudgeNote(event.id, guest.judgeId, {
+      startupId: apps[0].userId,
+      note: 'Strong founder, clear wedge.',
+      uspNote: 'Proprietary dataset.',
+    });
+    let myNotes = await ScreeningService.getMyNotes(event.id, guest.judgeId);
+    check('a judge note is saved', myNotes.length === 1, myNotes.length);
+    check('the note text is stored', myNotes[0]?.note === 'Strong founder, clear wedge.');
+    check('the USP note is stored', myNotes[0]?.uspNote === 'Proprietary dataset.');
+
+    await ScreeningService.saveJudgeNote(event.id, guest.judgeId, {
+      startupId: apps[0].userId,
+      note: 'Revised after Q&A.',
+    });
+    myNotes = await ScreeningService.getMyNotes(event.id, guest.judgeId);
+    check('saving again edits rather than appending', myNotes.length === 1, myNotes.length);
+    check('the edit took effect', myNotes[0]?.note === 'Revised after Q&A.');
+
+    check(
+      'someone not on the panel cannot leave a note',
+      !!(await rejects(() =>
+        ScreeningService.saveJudgeNote(event.id, apps[1].userId, { startupId: apps[0].userId, note: 'x' }),
+      )),
+    );
+
     // ── Scoring and the board ─────────────────────────────────────────────────
     section('Scoring');
 
@@ -256,6 +308,8 @@ async function main() {
     check('a judge who skipped a criterion does not drag the score to zero', c2?.averageScore === 20, c2?.averageScore);
     check('an unscored candidate has no score rather than a zero', c3?.averageScore === null, c3?.averageScore);
     check('ranked by score', c1?.rank === 1 && c2?.rank === 2, [c1?.rank, c2?.rank]);
+    check('the board carries each judge note for the chair', c1?.notes?.length === 1, c1?.notes?.length);
+    check('with the judge named', !!c1?.notes?.[0]?.judgeName, c1?.notes?.[0]?.judgeName);
     check('an unscored candidate has no rank', c3?.rank === null, c3?.rank);
 
     check(
@@ -334,6 +388,7 @@ async function main() {
     // which would leave the test rows behind.
     for (const id of created.events) {
       await prisma.$executeRaw`DELETE FROM "StartupScore" WHERE "eventId" = ${id}`;
+      await prisma.$executeRaw`DELETE FROM "ScreeningJudgeNote" WHERE "eventId" = ${id}`;
       await prisma.$executeRaw`DELETE FROM "ScorecardCriteria" WHERE "eventId" = ${id}`;
       await prisma.$executeRaw`DELETE FROM "JudgeAssignment" WHERE "eventId" = ${id}`;
       await prisma.$executeRaw`DELETE FROM "EventScheduleSlot" WHERE "eventId" = ${id}`;
