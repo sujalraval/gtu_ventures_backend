@@ -19,7 +19,7 @@ const envSchema = z.object({
   EMAIL_FROM: z.string().default(''),
   ALLOWED_ORIGINS: z.string().optional().transform((val) => val?.split(',') || []),
   // Public website origin — used to build certificate verification links.
-  PUBLIC_SITE_URL: z.string().default('https://gtuventures.vercel.app'),
+  PUBLIC_SITE_URL: z.string().default('https://gtuventures.com'),
   // ERP origin — used to build links into the admin app, such as the judge
   // scoring screen sent to guest panellists.
   APP_URL: z.string().default('https://apply.gtuventures.com'),

@@ -34,6 +34,8 @@ import eventRoutes from './modules/events/events.routes';
 import kycRoutes from './modules/kyc/kyc.routes';
 import vcRoutes from './modules/vc/vc.routes';
 import websiteManagementRoutes from './modules/website-management/website-management.routes';
+import pceRoutes from './modules/pce/pce.routes';
+import pcePublicRoutes from './modules/pce/pce.public.routes';
 const app: Application = express();
 
 // Trust CloudPanel/Nginx proxy
@@ -64,7 +66,16 @@ const limiter = rateLimit({
   max: 10000, // Limit each IP to 10000 requests per windowMs
   message: 'Too many requests from this IP, please try again after 15 minutes',
 });
+// The evaluator invitation link is unauthenticated and keyed on a secret, so
+// it gets a tighter limit than the blanket one below.
+const publicApplyLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 60,
+  message: 'Too many requests. Please try again in 15 minutes.',
+});
+
 if (config.NODE_ENV === 'production') {
+  app.use('/api/pce/public', publicApplyLimiter);
   app.use('/api/', limiter);
 }
 // CORS Configuration
@@ -120,6 +131,12 @@ app.use('/api/events', eventRoutes);
 app.use('/api/kyc', kycRoutes);
 app.use('/api/vc', vcRoutes);
 app.use('/api/website-management', websiteManagementRoutes);
+
+// Panel / Committee / Evaluation. Public first: the evaluator invitation link
+// is unauthenticated and keyed on a secret, so /api/pce/public/* must be
+// matched before the authenticated router or it falls through to a 401.
+app.use('/api/pce/public', pcePublicRoutes);
+app.use('/api/pce', pceRoutes);
 
 // TEMPORARY: Seed Super Admin - REMOVE AFTER USE
 app.post('/api/seed-admin', async (req: Request, res: Response) => {

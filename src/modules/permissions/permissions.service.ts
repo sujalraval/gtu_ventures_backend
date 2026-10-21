@@ -25,6 +25,29 @@ export class PermissionsService {
       { key: "events",          label: "Events & Demo Day",    group: "Operations" },
       { key: "inventory",       label: "Inventory Management", group: "Operations" },
       { key: "cohorts",         label: "Cohort Management",    group: "Operations" },
+
+      // Panel / Committee / Evaluation. These gate the PCE pages ported from
+      // GUSEC; the routes reference them by key, so without these rows every
+      // PCE screen 403s for anyone below SUPER_ADMIN. They seed unticked —
+      // grant them to a role deliberately, see scripts/grant-pce-permissions.ts.
+      { key: "pce", label: "Pitching & Evaluation", group: "Pitching & Evaluation" },
+      { key: "pce_dashboard", label: "Process Dashboard", group: "Pitching & Evaluation" },
+      { key: "pce_scheme_assignment", label: "Assign Scheme", group: "Pitching & Evaluation" },
+      { key: "pce_scheme_applications", label: "Scheme-Wise Applications", group: "Pitching & Evaluation" },
+      { key: "pce_scheme_history", label: "Scheme Assignment History", group: "Pitching & Evaluation" },
+      { key: "pce_selected_for_pitch", label: "Selected for Pitch", group: "Pitching & Evaluation" },
+      { key: "pce_schedule", label: "Schedule Pitch", group: "Pitching & Evaluation" },
+      { key: "pce_calendar", label: "Pitch Calendar", group: "Pitching & Evaluation" },
+      { key: "pce_committees", label: "Committee Management", group: "Pitching & Evaluation" },
+      { key: "pce_evaluators", label: "Evaluator / Expert Master", group: "Pitching & Evaluation" },
+      { key: "pce_evaluator_bank", label: "Evaluator Bank & Payment Details", group: "Pitching & Evaluation" },
+      { key: "pce_panels", label: "Panel Management", group: "Pitching & Evaluation" },
+      { key: "pce_evaluations", label: "Evaluations", group: "Pitching & Evaluation" },
+      { key: "pce_consolidated", label: "Consolidated Evaluation", group: "Pitching & Evaluation" },
+      { key: "pce_final_selection", label: "Final Selection", group: "Pitching & Evaluation" },
+      { key: "pce_onboarding", label: "Onboarding", group: "Pitching & Evaluation" },
+      { key: "pce_honorarium", label: "Evaluator Payments", group: "Pitching & Evaluation" },
+      { key: "pce_reports", label: "PCE Reports", group: "Pitching & Evaluation" },
     ];
 
     let created = 0;

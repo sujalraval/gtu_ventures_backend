@@ -1,6 +1,8 @@
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import 'dotenv/config'; // must load before prisma reads DATABASE_URL
+// The shared client, not `new PrismaClient()`. Prisma 7 requires a driver
+// adapter, which src/lib/prisma.ts configures — constructing one bare here
+// throws PrismaClientInitializationError before the script does anything.
+import prisma from '../src/lib/prisma';
 
 async function main() {
   console.log('Fixing STAFF permissions...');

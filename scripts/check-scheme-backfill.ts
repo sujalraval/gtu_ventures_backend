@@ -1,4 +1,5 @@
 /** Confirms the scheme-preference backfill produced sensible rows. Read-only. */
+import 'dotenv/config'; // must load before prisma reads DATABASE_URL
 import prisma from '../src/lib/prisma';
 
 async function main() {

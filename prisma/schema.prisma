@@ -785,42 +785,55 @@ model SPRMasterConfig {
 }
 
 model Scheme {
-  id                  String                        @id @default(uuid())
-  name                String
-  code                String                        @unique
-  type                String
-  providedBy          String?
-  organizationName    String?
-  categories          String[]
-  sectors             String[]
-  departments         String[]
-  description         String?
-  objectives          String?
-  eligibility         String?
-  targetBeneficiaries String[]
-  totalBudget         Float?
-  maxGrant            Float
-  fundingType         String[]
-  selectionCriteria   String?
-  evaluationProcess   String?
-  installments        Int?
-  duration            String?
-  validityPeriods     Json?
-  applicationPeriods  Json?
-  requiredDocuments   Json?
-  status              SchemeStatus                  @default(DRAFT)
-  deletedAt           DateTime?
-  createdAt           DateTime                      @default(now())
-  updatedAt           DateTime                      @updatedAt
-  applicationFormJson Json?
-  equityPercentage    Float?
-  templates           AgreementTemplate[]
-  cohorts             Cohort[]
-  generatedAgreements GeneratedAgreement[]
-  grants              Grant[]
-  applications        StartupApplication[]
-  schemePreferences   ApplicationSchemePreference[]
-  screeningCandidates ScreeningCandidate[]
+  id                   String                        @id @default(uuid())
+  name                 String
+  code                 String                        @unique
+  type                 String
+  providedBy           String?
+  organizationName     String?
+  categories           String[]
+  sectors              String[]
+  departments          String[]
+  description          String?
+  objectives           String?
+  eligibility          String?
+  targetBeneficiaries  String[]
+  totalBudget          Float?
+  maxGrant             Float
+  fundingType          String[]
+  selectionCriteria    String?
+  evaluationProcess    String?
+  installments         Int?
+  duration             String?
+  validityPeriods      Json?
+  applicationPeriods   Json?
+  requiredDocuments    Json?
+  status               SchemeStatus                  @default(DRAFT)
+  deletedAt            DateTime?
+  createdAt            DateTime                      @default(now())
+  updatedAt            DateTime                      @updatedAt
+  applicationFormJson  Json?
+  equityPercentage     Float?
+  templates            AgreementTemplate[]
+  cohorts              Cohort[]
+  generatedAgreements  GeneratedAgreement[]
+  grants               Grant[]
+  applications         StartupApplication[]
+  schemePreferences    ApplicationSchemePreference[]
+  screeningCandidates  ScreeningCandidate[]
+  committeeMandates    SchemeCommitteeMandate[]
+  committees           Committee[]                   @relation("CommitteeScheme")
+  evaluationPanels     EvaluationPanel[]             @relation("PanelScheme")
+  finalSelections      FinalSelection[]              @relation("FinalSelectionScheme")
+  honorariums          EvaluatorHonorarium[]         @relation("HonorariumScheme")
+  pceFinalFor          ApplicationPceState[]         @relation("PceFinalScheme")
+  pceProvisionalFor    ApplicationPceState[]         @relation("PceProvisionalScheme")
+  pitchEvalAlternative PitchEvaluation[]             @relation("PitchEvalAlternativeScheme")
+  pitchEvalRecommended PitchEvaluation[]             @relation("PitchEvalRecommendedScheme")
+  pitchSchedules       PitchSchedule[]               @relation("PitchScheduleScheme")
+  pitchingSessions     PitchingSession[]             @relation("PitchingSessionScheme")
+  schemeHistory        SchemeAssignmentHistory[]     @relation("SchemeHistoryScheme")
+  schemeHistoryPrev    SchemeAssignmentHistory[]     @relation("SchemeHistoryPreviousScheme")
 
   @@index([deletedAt])
 }
@@ -948,6 +961,14 @@ model StartupApplication {
   user                    User                          @relation("StartupApplication_userIdToUser", fields: [userId], references: [id], onDelete: Cascade)
   grantAllocation         StartupGrantAllocation?
   messageThreads          MessageThread[]
+  assignments             ApplicationAssignment[]
+  finalSelection          FinalSelection?
+  onboarding              OnboardingRecord?
+  panelAllocations        PanelApplication[]
+  pceState                ApplicationPceState?
+  pitchEvaluations        PitchEvaluation[]
+  pitchSchedules          PitchSchedule[]
+  schemeHistory           SchemeAssignmentHistory[]
 
   @@index([aadhaar])
   @@index([assignedToId])
@@ -1216,6 +1237,9 @@ model User {
   vcFirm                 VcFirm?
   vcInterestsReceived    VcInterest[]                  @relation("VcInterestStartup")
   vcMeetingsReceived     VcMeeting[]                   @relation("VcMeetingStartup")
+  assignmentsMade        ApplicationAssignment[]       @relation("AssignmentAssigner")
+  evaluatorProfile       Evaluator?                    @relation("EvaluatorUser")
+  reviewAssignments      ApplicationAssignment[]       @relation("AssignmentReviewer")
 
   @@index([deletedAt])
 }
@@ -2120,7 +2144,8 @@ model NotificationTemplate {
   createdAt   DateTime            @default(now())
   updatedAt   DateTime            @updatedAt
 
-  creator User @relation("TemplateCreator", fields: [createdBy], references: [id])
+  creator User              @relation("TemplateCreator", fields: [createdBy], references: [id])
+  logs    NotificationLog[]
 }
 
 // Per-recipient delivery log for announcements and ad-hoc emails
@@ -2137,8 +2162,21 @@ model NotificationLog {
   readAt         DateTime?
   createdAt      DateTime            @default(now())
 
-  announcement Announcement? @relation(fields: [announcementId], references: [id], onDelete: SetNull)
-  recipient    User?         @relation("NotificationRecipient", fields: [recipientId], references: [id], onDelete: SetNull)
+  announcement Announcement?             @relation(fields: [announcementId], references: [id], onDelete: SetNull)
+  recipient    User?                     @relation("NotificationRecipient", fields: [recipientId], references: [id], onDelete: SetNull)
+  // Brought up to the GUSEC shape as part of the PCE port: that module logs
+  // invitation emails against the record they belong to (relatedType /
+  // relatedId) and uses templates. All additive and optional.
+  templateId   String?
+  triggerEvent NotificationTriggerEvent?
+  relatedType  String?
+  relatedId    String?
+  cc           String[]                  @default([])
+  bcc          String[]                  @default([])
+  attachments  String[]                  @default([])
+  body         String?                   @db.Text
+  sendMode     NotificationSendMode      @default(MANUAL)
+  template     NotificationTemplate?     @relation(fields: [templateId], references: [id], onDelete: SetNull)
 
   @@index([announcementId])
   @@index([recipientId])
@@ -3224,4 +3262,1048 @@ model EventParticipant {
   updatedAt    DateTime  @updatedAt
 
   @@index([email])
+}
+
+// ─── Panel / Committee / Evaluation (ported from GUSEC) ───────────────────
+
+enum AssessmentResult {
+  ACCEPTED
+  REJECTED
+  INCOMPLETE
+  HOLD
+}
+
+enum AssessmentResultSource {
+  REVIEWER
+  RULE
+  RULE_OVERRIDDEN
+}
+
+enum AssignmentPriority {
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum AssignmentStatus {
+  ASSIGNED
+  ACCEPTED
+  UNDER_REVIEW
+  REVIEW_SUBMITTED
+  REVIEW_COMPLETED
+  REASSIGNED
+}
+
+enum CommitteeStatus {
+  ACTIVE
+  INACTIVE
+  EXPIRED
+}
+
+enum CommitteeType {
+  PRELIMINARY_SCREENING
+  TECHNICAL_EVALUATION
+  PITCH_EVALUATION
+  JURY
+  FINANCE
+  FINAL_SELECTION
+  INCUBATION_APPROVAL
+}
+
+enum EvaluatorAffiliation {
+  INTERNAL
+  EXTERNAL
+}
+
+enum EvaluatorDocumentType {
+  CV
+  PAN_CARD
+  CANCELLED_CHEQUE
+  BANK_PROOF
+  GST_CERTIFICATE
+  ID_PROOF
+  APPOINTMENT_LETTER
+  INVITATION_LETTER
+  CONSENT_LETTER
+  OTHER
+}
+
+enum EvaluatorStatus {
+  ACTIVE
+  INACTIVE
+  BLACKLISTED
+}
+
+enum EvaluatorType {
+  INTERNAL_EXPERT
+  EXTERNAL_EXPERT
+  JURY_MEMBER
+  INDUSTRY_EXPERT
+  TECHNICAL_EXPERT
+  FINANCIAL_EXPERT
+  MENTOR
+  ACADEMIC_EXPERT
+  SUBJECT_EXPERT
+  COMMITTEE_MEMBER
+  OTHER
+}
+
+enum HonorariumStatus {
+  PENDING
+  PROCESSING
+  PAID
+  CANCELLED
+}
+
+enum InvitationRecipientType {
+  FOUNDER
+  CO_FOUNDER
+  EVALUATOR
+  PANEL_MEMBER
+  COMMITTEE_CHAIRPERSON
+}
+
+enum InvitationStatus {
+  PENDING
+  SENT
+  FAILED
+  RESENT
+  ACCEPTED
+  DECLINED
+}
+
+enum NotificationSendMode {
+  AUTO
+  MANUAL
+}
+
+enum NotificationTriggerEvent {
+  // Startup registration
+  STARTUP_REGISTRATION_SUBMITTED
+  STARTUP_REGISTRATION_APPROVED
+  STARTUP_REGISTRATION_REJECTED
+  STARTUP_REGISTRATION_CHANGES_REQUESTED
+  // Application
+  APPLICATION_SUBMITTED
+  APPLICATION_UNDER_REVIEW
+  APPLICATION_APPROVED
+  APPLICATION_REJECTED
+  APPLICATION_ON_HOLD
+  APPLICATION_RESUBMISSION_REQUIRED
+  APPLICATION_SELECTED_FOR_PITCH
+  // Documents and compliance
+  DOCUMENTS_REQUIRED
+  DOCUMENTS_VERIFIED
+  DOCUMENTS_REJECTED
+  DOCUMENT_EXPIRY_REMINDER
+  // Incubation
+  INCUBATION_ONBOARDING
+  INCUBATION_STARTED
+  INCUBATION_MILESTONE
+  INCUBATION_ENDING_REMINDER
+  INCUBATION_COMPLETED
+  // Mentoring
+  MENTOR_ASSIGNED
+  MENTOR_MEETING_SCHEDULED
+  MENTOR_MEETING_REMINDER
+  MENTOR_FEEDBACK_SUBMITTED
+  // Funding and grants
+  GRANT_APPLICATION_SUBMITTED
+  GRANT_APPLICATION_APPROVED
+  GRANT_APPLICATION_REJECTED
+  GRANT_DISBURSEMENT
+  // Events and programs
+  EVENT_REGISTRATION_CONFIRMED
+  EVENT_REMINDER
+  WORKSHOP_REGISTRATION
+  WORKSHOP_REMINDER
+  PITCH_SCHEDULED
+  PITCH_REMINDER
+  // Account
+  USER_REGISTRATION
+  ACCOUNT_ACTIVATION
+  PASSWORD_RESET
+  ROLE_PERMISSION_CHANGED
+  // Escape hatch for centre-specific events
+  OTHER
+}
+
+enum OnboardingStatus {
+  NOT_STARTED
+  SELECTED
+  SCHEME_CONFIRMED
+  DOCUMENTS_PENDING
+  VERIFICATION_PENDING
+  AGREEMENT_PENDING
+  FINAL_APPROVAL_PENDING
+  COMPLETED
+}
+
+enum PanelRole {
+  CHAIRPERSON
+  MEMBER
+  OBSERVER
+}
+
+enum PanelStatus {
+  DRAFT
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum PceEvaluationStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum PceFinalDecision {
+  APPROVED_FOR_INCUBATION
+  APPROVED_WITH_GRANT
+  APPROVED_WITHOUT_GRANT
+  APPROVED_WITH_CONDITIONS
+  RE_PRESENTATION_REQUIRED
+  WAITLISTED
+  REJECTED
+}
+
+enum PitchEvaluationState {
+  DRAFT
+  SUBMITTED
+  LOCKED
+  REOPENED
+}
+
+enum PitchMode {
+  ONLINE
+  OFFLINE
+  HYBRID
+}
+
+enum PitchRecommendation {
+  HIGHLY_RECOMMENDED
+  RECOMMENDED
+  RECOMMENDED_WITH_CONDITIONS
+  RECOMMENDED_FOR_INCUBATION
+  RE_PRESENTATION_REQUIRED
+  HOLD_FOR_REVIEW
+  WAITLISTED
+  NOT_RECOMMENDED
+}
+
+enum PitchSessionType {
+  MORNING
+  AFTERNOON
+  EVENING
+  CUSTOM
+}
+
+enum PitchStatus {
+  INVITATION_PENDING
+  INVITATION_SENT
+  SCHEDULED
+  RESCHEDULED
+  COMPLETED
+  CANCELLED
+}
+
+enum PitchingSessionStatus {
+  DRAFT
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum SchemeAssignmentAction {
+  SUGGESTED
+  ASSIGNED
+  CHANGED
+  CONFIRMED
+  FINAL_APPROVED
+  REVOKED
+}
+
+enum SchemeAssignmentKind {
+  SUGGESTED
+  PROVISIONAL
+  FINAL
+}
+
+enum SchemeAssignmentStatus {
+  NOT_ASSIGNED
+  SUGGESTED
+  PROVISIONALLY_ASSIGNED
+  ASSIGNED
+  CHANGED
+  CONFIRMED
+  FINAL_APPROVED
+}
+
+enum SchemeEligibilityVerdict {
+  ELIGIBLE
+  PARTIALLY_ELIGIBLE
+  REVIEW_REQUIRED
+  NOT_ELIGIBLE
+}
+
+model ApplicationAssignment {
+  id            String             @id @default(uuid())
+  applicationId String
+  stage         ApplicationLevel   @default(LEVEL_1)
+  status        AssignmentStatus   @default(ASSIGNED)
+  priority      AssignmentPriority @default(NORMAL)
+  isActive      Boolean            @default(true)
+  dueDate       DateTime?
+
+  /// When the reviewer first opened the review, and when they submitted it.
+  /// Section 2 asks for both and neither was recorded anywhere.
+  reviewStartedAt   DateTime?
+  reviewCompletedAt DateTime?
+  /// Mirrored from the review on submission so the queue can filter and sort by
+  /// outcome without joining every review. The review stays the source of
+  /// truth; this is a read model.
+  assessmentResult  AssessmentResult?
+  assessmentScore   Float?
+  remarks           String?
+
+  reviewerId           String?
+  reviewerName         String
+  assignedById         String?
+  assignedByName       String
+  previousReviewerId   String?
+  previousReviewerName String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  application StartupApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  reviewer    User?              @relation("AssignmentReviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
+  assignedBy  User?              @relation("AssignmentAssigner", fields: [assignedById], references: [id], onDelete: SetNull)
+
+  @@index([applicationId, stage])
+  @@index([reviewerId, status])
+  @@index([isActive])
+  @@index([createdAt])
+}
+
+model ApplicationPceState {
+  id            String @id @default(uuid())
+  applicationId String @unique
+
+  // Scheme. appliedScheme is on StartupApplication and is never written here.
+  schemeStatus              SchemeAssignmentStatus    @default(NOT_ASSIGNED)
+  provisionalSchemeId       String?
+  finalSchemeId             String?
+  schemeAssignedBy          String?
+  schemeAssignedAt          DateTime?
+  schemeApprovedBy          String?
+  schemeApprovedAt          DateTime?
+  schemeRemarks             String?                   @db.Text
+  eligibilityVerdict        SchemeEligibilityVerdict?
+  eligibilityCheckedAt      DateTime?
+  /// Set when a scheme was assigned against an eligibility verdict that did
+  /// not permit it. Kept so the override is visible later, not just allowed.
+  eligibilityOverrideReason String?                   @db.Text
+
+  pitchStatus      PitchStatus         @default(INVITATION_PENDING)
+  evaluationStatus PceEvaluationStatus @default(PENDING)
+  onboardingStatus OnboardingStatus    @default(NOT_STARTED)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  application       StartupApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  provisionalScheme Scheme?            @relation("PceProvisionalScheme", fields: [provisionalSchemeId], references: [id])
+  finalScheme       Scheme?            @relation("PceFinalScheme", fields: [finalSchemeId], references: [id])
+
+  @@index([schemeStatus])
+  @@index([pitchStatus])
+  @@index([evaluationStatus])
+  @@index([onboardingStatus])
+  @@index([provisionalSchemeId])
+  @@index([finalSchemeId])
+}
+
+model Committee {
+  id        String        @id @default(uuid())
+  name      String
+  type      CommitteeType
+  /// The scheme mandate this committee was formed under, when it was formed
+  /// against one. Null for a committee predating its mandate, or one
+  /// deliberately formed outside any.
+  mandateId String?
+  /// Committees are "preferably" scheme-linked, so this is optional: a Final
+  /// Selection committee may span schemes.
+  schemeId  String?
+
+  purpose    String?         @db.Text
+  validFrom  DateTime?
+  validUntil DateTime?
+  remarks    String?         @db.Text
+  status     CommitteeStatus @default(ACTIVE)
+
+  createdBy String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  scheme  Scheme?                 @relation("CommitteeScheme", fields: [schemeId], references: [id])
+  mandate SchemeCommitteeMandate? @relation(fields: [mandateId], references: [id])
+  members CommitteeMember[]
+
+  @@index([schemeId])
+  @@index([type])
+  @@index([status])
+  @@index([deletedAt])
+}
+
+model CommitteeMember {
+  id               String    @id @default(uuid())
+  committeeId      String
+  evaluatorId      String
+  role             PanelRole @default(MEMBER)
+  /// The expert category or categories this person serves as *on this
+  /// committee*, one or two of them. Held here rather than only on the Evaluator
+  /// because somebody who is both an academic and an investor may sit on one
+  /// committee as the academic and another as the investor, and the scheme
+  /// mandate needs to know which hat is being worn where.
+  expertCategories String[]
+
+  joinedAt DateTime  @default(now())
+  leftAt   DateTime?
+  remarks  String?   @db.Text
+
+  committee Committee @relation(fields: [committeeId], references: [id], onDelete: Cascade)
+  evaluator Evaluator @relation(fields: [evaluatorId], references: [id], onDelete: Cascade)
+
+  @@unique([committeeId, evaluatorId])
+  @@index([committeeId])
+  @@index([evaluatorId])
+}
+
+model EvaluationPanel {
+  id                 String    @id @default(uuid())
+  name               String
+  schemeId           String?
+  /// The pitching session this panel sits for.
+  sessionId          String?
+  /**
+   * How many evaluators must accept before the panel counts as confirmed.
+   * Separate from the mandate's own minimum: a mandate states the committee
+   * composition, while this is the headcount this particular sitting needs.
+   * Null falls back to the mandate's minimum.
+   */
+  requiredEvaluators Int?
+  /// Set once the required number and categories have accepted. Cleared if
+  /// an acceptance is later withdrawn.
+  confirmedAt        DateTime?
+  /// The mandate whose composition this panel must satisfy before it counts
+  /// as confirmed. Null means no composition requirement.
+  mandateId          String?
+
+  /// Which stage this panel evaluates at; free text so it can name a stage
+  /// this module does not model as an enum.
+  evaluationStage String?
+  pitchDate       DateTime?
+  session         PitchSessionType?
+  sectors         String[]
+  status          PanelStatus       @default(DRAFT)
+  remarks         String?           @db.Text
+
+  createdBy String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  scheme          Scheme?                 @relation("PanelScheme", fields: [schemeId], references: [id])
+  pitchingSession PitchingSession?        @relation(fields: [sessionId], references: [id])
+  mandate         SchemeCommitteeMandate? @relation(fields: [mandateId], references: [id])
+  members         PanelMember[]
+  allocations     PanelApplication[]
+  schedules       PitchSchedule[]
+  evaluations     PitchEvaluation[]
+  invitations     PitchInvitation[]
+  honorariums     EvaluatorHonorarium[]
+
+  @@index([schemeId])
+  @@index([status])
+  @@index([pitchDate])
+  @@index([deletedAt])
+}
+
+model Evaluator {
+  id     String  @id @default(uuid())
+  code   String? @unique
+  userId String? @unique
+
+  firstName  String
+  middleName String?
+  lastName   String?
+
+  mobile        String?
+  personalEmail String?
+  officialEmail String?
+
+  organization String?
+  designation  String?
+  affiliation  EvaluatorAffiliation @default(EXTERNAL)
+  type         EvaluatorType        @default(EXTERNAL_EXPERT)
+
+  city    String?
+  state   String?
+  country String? @default("India")
+
+  sectors            String[]
+  /// Which mandate categories this expert counts towards (government
+  /// representative, academic, industry, investor and so on).
+  ///
+  /// A list rather than a second enum: one person is frequently both an
+  /// industry expert and an investor, and a mandate asking for one of each
+  /// may be satisfied by them or may need two people. Validated against the
+  /// shared vocabulary in the service, the same way sectors is.
+  expertCategories   String[]
+  areaOfExpertise    String?  @db.Text
+  industryExperience String?
+  academicExpertise  String?  @db.Text
+  specialization     String?  @db.Text
+  shortProfile       String?  @db.Text
+
+  status    EvaluatorStatus @default(ACTIVE)
+  remarks   String?         @db.Text
+  createdBy String?
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  deletedAt DateTime?
+
+  user             User?                 @relation("EvaluatorUser", fields: [userId], references: [id])
+  bankDetail       EvaluatorBankDetail?
+  documents        EvaluatorDocument[]
+  committeeSeats   CommitteeMember[]
+  panelSeats       PanelMember[]
+  pitchEvaluations PitchEvaluation[]
+  honorariums      EvaluatorHonorarium[]
+
+  @@index([affiliation])
+  @@index([type])
+  @@index([status])
+  @@index([deletedAt])
+  @@index([officialEmail])
+  @@index([personalEmail])
+}
+
+model EvaluatorBankDetail {
+  id          String @id @default(uuid())
+  evaluatorId String @unique
+
+  accountHolderName String?
+  bankName          String?
+  accountNumber     String?
+  ifscCode          String?
+  branch            String?
+  accountType       String?
+  pan               String?
+  gstNumber         String?
+  upiId             String?
+  paymentRemarks    String? @db.Text
+
+  updatedBy String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  evaluator Evaluator @relation(fields: [evaluatorId], references: [id], onDelete: Cascade)
+}
+
+model EvaluatorDocument {
+  id          String                @id @default(uuid())
+  evaluatorId String
+  type        EvaluatorDocumentType @default(OTHER)
+  title       String?
+  fileName    String?
+  fileUrl     String
+  fileSize    Int?
+  mimeType    String?
+
+  uploadedBy String?
+  uploadedAt DateTime  @default(now())
+  deletedAt  DateTime?
+
+  evaluator Evaluator @relation(fields: [evaluatorId], references: [id], onDelete: Cascade)
+
+  @@index([evaluatorId])
+  @@index([type])
+  @@index([deletedAt])
+}
+
+model EvaluatorHonorarium {
+  id          String  @id @default(uuid())
+  evaluatorId String
+  schemeId    String?
+  panelId     String?
+
+  pitchDate             DateTime?
+  applicationsEvaluated Int       @default(0)
+  honorariumAmount      Float     @default(0)
+  travelAllowance       Float     @default(0)
+  otherAllowance        Float     @default(0)
+  /// Stored rather than derived so a paid total is not retro-changed by an
+  /// edit to one of the parts.
+  totalPayable          Float     @default(0)
+
+  status         HonorariumStatus @default(PENDING)
+  paymentDate    DateTime?
+  transactionRef String?
+  remarks        String?          @db.Text
+
+  createdBy String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  evaluator Evaluator        @relation(fields: [evaluatorId], references: [id], onDelete: Cascade)
+  scheme    Scheme?          @relation("HonorariumScheme", fields: [schemeId], references: [id])
+  panel     EvaluationPanel? @relation(fields: [panelId], references: [id])
+
+  @@index([evaluatorId])
+  @@index([schemeId])
+  @@index([panelId])
+  @@index([status])
+}
+
+model FinalSelection {
+  id            String @id @default(uuid())
+  applicationId String @unique
+
+  finalSchemeId    String?
+  decision         PceFinalDecision?
+  committeeRemarks String?           @db.Text
+  /// Average panel score at the time of decision, kept so the decision can be
+  /// read back with the number it was made on.
+  finalScore       Float?
+
+  grantApproved          Boolean @default(false)
+  sanctionedGrantAmount  Float?
+  grantConditions        String? @db.Text
+  rePresentationRequired Boolean @default(false)
+
+  decidedBy String?
+  decidedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  application StartupApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  finalScheme Scheme?            @relation("FinalSelectionScheme", fields: [finalSchemeId], references: [id])
+
+  @@index([decision])
+  @@index([finalSchemeId])
+}
+
+model MandateCategoryRequirement {
+  id        String @id @default(uuid())
+  mandateId String
+
+  /// A key from the shared expert-category vocabulary.
+  category    String
+  /// Zero with isMandatory false is how an optional category is recorded: the
+  /// category is permitted and shown, but nothing is required from it.
+  minCount    Int     @default(1)
+  isMandatory Boolean @default(true)
+  remarks     String?
+
+  mandate SchemeCommitteeMandate @relation(fields: [mandateId], references: [id], onDelete: Cascade)
+
+  @@unique([mandateId, category])
+  @@index([mandateId])
+}
+
+model OnboardingDocument {
+  id           String @id @default(uuid())
+  onboardingId String
+
+  name       String
+  fileUrl    String?
+  fileName   String?
+  isRequired Boolean   @default(true)
+  isVerified Boolean   @default(false)
+  verifiedBy String?
+  verifiedAt DateTime?
+  remarks    String?   @db.Text
+
+  uploadedAt DateTime  @default(now())
+  deletedAt  DateTime?
+
+  onboarding OnboardingRecord @relation(fields: [onboardingId], references: [id], onDelete: Cascade)
+
+  @@index([onboardingId])
+  @@index([deletedAt])
+}
+
+model OnboardingRecord {
+  id            String @id @default(uuid())
+  applicationId String @unique
+
+  status              OnboardingStatus @default(NOT_STARTED)
+  incubationStartDate DateTime?
+  mentorId            String?
+
+  agreementStatus      String?
+  kycVerified          Boolean   @default(false)
+  bankDetailsVerified  Boolean   @default(false)
+  registrationVerified Boolean   @default(false)
+  documentsVerifiedAt  DateTime?
+  verifiedBy           String?
+  approvedBy           String?
+  approvedAt           DateTime?
+  completedAt          DateTime?
+  remarks              String?   @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  application StartupApplication   @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  documents   OnboardingDocument[]
+
+  @@index([status])
+}
+
+model PanelApplication {
+  id            String @id @default(uuid())
+  panelId       String
+  applicationId String
+
+  allocatedBy String?
+  allocatedAt DateTime @default(now())
+  remarks     String?  @db.Text
+
+  panel       EvaluationPanel    @relation(fields: [panelId], references: [id], onDelete: Cascade)
+  application StartupApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@unique([panelId, applicationId])
+  @@index([panelId])
+  @@index([applicationId])
+}
+
+model PanelMember {
+  id               String    @id @default(uuid())
+  panelId          String
+  evaluatorId      String
+  role             PanelRole @default(MEMBER)
+  /// As on CommitteeMember: the categories this person counts towards for this
+  /// panel's mandate compliance.
+  expertCategories String[]
+
+  createdAt DateTime @default(now())
+
+  panel     EvaluationPanel @relation(fields: [panelId], references: [id], onDelete: Cascade)
+  evaluator Evaluator       @relation(fields: [evaluatorId], references: [id], onDelete: Cascade)
+
+  @@unique([panelId, evaluatorId])
+  @@index([panelId])
+  @@index([evaluatorId])
+}
+
+model PitchEvaluation {
+  id            String  @id @default(uuid())
+  applicationId String
+  evaluatorId   String
+  panelId       String?
+  scheduleId    String?
+
+  // Marks awarded. Maximums: 20 / 20 / 20 / 20 / 10 / 5 / 5 = 100.
+  needOfInnovationScore Float @default(0)
+  feasibilityScore      Float @default(0)
+  potentialImpactScore  Float @default(0)
+  noveltyScore          Float @default(0)
+  teamScore             Float @default(0)
+  fundUtilizationScore  Float @default(0)
+  presentationScore     Float @default(0)
+  /// Sum of the seven, stored as calculated at submission time.
+  totalScore            Float @default(0)
+
+  /// Per-criterion remarks, keyed by criterion key.
+  criteriaRemarks Json?
+
+  recommendation PitchRecommendation?
+  strengths      String?              @db.Text
+  weaknesses     String?              @db.Text
+  risks          String?              @db.Text
+  suggestions    String?              @db.Text
+  conditions     String?              @db.Text
+  finalNote      String?              @db.Text
+  remarks        String?              @db.Text
+
+  /// A recommendation only. Nothing here changes the assigned scheme; the
+  /// Final Committee decides, and this is what they are shown.
+  recommendedSchemeId         String?
+  alternativeSchemeId         String?
+  schemeRecommendationRemarks String? @db.Text
+
+  grantRecommended       Boolean @default(false)
+  recommendedGrantAmount Float?
+  grantPurpose           String? @db.Text
+  fundUtilizationRemarks String? @db.Text
+  grantConditions        String? @db.Text
+
+  state        PitchEvaluationState @default(DRAFT)
+  submittedAt  DateTime?
+  lockedAt     DateTime?
+  /// Required when an admin reopens a locked evaluation.
+  reopenReason String?              @db.Text
+  reopenedBy   String?
+  reopenedAt   DateTime?
+  revision     Int                  @default(1)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  application       StartupApplication        @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  evaluator         Evaluator                 @relation(fields: [evaluatorId], references: [id])
+  panel             EvaluationPanel?          @relation(fields: [panelId], references: [id])
+  schedule          PitchSchedule?            @relation(fields: [scheduleId], references: [id])
+  recommendedScheme Scheme?                   @relation("PitchEvalRecommendedScheme", fields: [recommendedSchemeId], references: [id])
+  alternativeScheme Scheme?                   @relation("PitchEvalAlternativeScheme", fields: [alternativeSchemeId], references: [id])
+  revisions         PitchEvaluationRevision[]
+
+  @@unique([applicationId, evaluatorId])
+  @@index([applicationId])
+  @@index([evaluatorId])
+  @@index([panelId])
+  @@index([state])
+}
+
+model PitchEvaluationRevision {
+  id           String   @id @default(uuid())
+  evaluationId String
+  revision     Int
+  /// The whole evaluation as it stood, rather than a column-per-field copy.
+  snapshot     Json
+  reason       String?  @db.Text
+  createdBy    String?
+  createdAt    DateTime @default(now())
+
+  evaluation PitchEvaluation @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
+
+  @@unique([evaluationId, revision])
+  @@index([evaluationId])
+}
+
+model PitchInvitation {
+  id             String                  @id @default(uuid())
+  /// Set for an invitation about one application's slot.
+  scheduleId     String?
+  /// Set for an invitation to sit on a panel. Exactly one of these two
+  /// is populated; a panel invitation is not about a single booking.
+  panelId        String?
+  /**
+   * The secret in the accept/decline link.
+   * Unguessable and single-purpose, because the link is the only thing
+   * authenticating the response - an external evaluator has no login. The
+   * link opens a page that POSTs the answer rather than carrying it in the
+   * URL, so a mail scanner prefetching the link cannot accept on their
+   * behalf.
+   */
+  token          String?                 @unique
+  tokenExpiresAt DateTime?
+  respondedAt    DateTime?
+  responseNote   String?                 @db.Text
+  /// Denormalised so the log survives the schedule being re-pointed, and so an
+  /// invitation to an evaluator and to a founder sit in one list.
+  recipientType  InvitationRecipientType
+  recipientName  String?
+  recipientEmail String
+  evaluatorId    String?
+
+  status      InvitationStatus @default(PENDING)
+  sentAt      DateTime?
+  resendCount Int              @default(0)
+  lastError   String?          @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  schedule PitchSchedule?   @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  panel    EvaluationPanel? @relation(fields: [panelId], references: [id], onDelete: Cascade)
+
+  @@index([scheduleId])
+  @@index([panelId])
+  @@index([status])
+  @@index([recipientEmail])
+}
+
+model PitchSchedule {
+  id            String  @id @default(uuid())
+  applicationId String
+  schemeId      String?
+  panelId       String?
+  /// The pitching session this booking belongs to, when it was made from
+  /// the calendar. Null for a one-off booking made directly.
+  sessionId     String?
+
+  presentationDate DateTime
+  startTime        DateTime?
+  endTime          DateTime?
+  durationMins     Int?              @default(20)
+  reportingTime    DateTime?
+  session          PitchSessionType?
+  mode             PitchMode         @default(OFFLINE)
+  venue            String?
+  meetingLink      String?
+
+  instructions String? @db.Text
+  remarks      String? @db.Text
+
+  status       PitchStatus @default(SCHEDULED)
+  /// Required when status moves to RESCHEDULED or CANCELLED.
+  statusReason String?     @db.Text
+
+  /// Set when this row supersedes an earlier schedule, so a reschedule keeps
+  /// the original rather than overwriting it.
+  rescheduledFromId String?   @unique
+  isActive          Boolean   @default(true)
+  completedAt       DateTime?
+  /// When the startup was told about this booking. Per booking rather than
+  /// per session, so a session served by two panels cannot notify twice.
+  startupNotifiedAt DateTime?
+
+  createdBy String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  application     StartupApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  scheme          Scheme?            @relation("PitchScheduleScheme", fields: [schemeId], references: [id])
+  pitchingSession PitchingSession?   @relation(fields: [sessionId], references: [id])
+  panel           EvaluationPanel?   @relation(fields: [panelId], references: [id])
+  rescheduledFrom PitchSchedule?     @relation("PitchReschedule", fields: [rescheduledFromId], references: [id])
+  rescheduledTo   PitchSchedule?     @relation("PitchReschedule")
+  invitations     PitchInvitation[]
+  evaluations     PitchEvaluation[]
+
+  @@index([applicationId])
+  @@index([panelId])
+  @@index([schemeId])
+  @@index([presentationDate])
+  @@index([status])
+  @@index([isActive])
+  @@index([deletedAt])
+}
+
+model PitchingSession {
+  id       String  @id @default(uuid())
+  schemeId String?
+
+  name  String
+  /// The pitching or screening round this session belongs to, e.g. "Round 1".
+  round String?
+
+  presentationDate DateTime
+  startTime        DateTime?
+  endTime          DateTime?
+  session          PitchSessionType?
+  reportingTime    DateTime?
+
+  mode        PitchMode @default(OFFLINE)
+  venue       String?
+  meetingLink String?
+
+  /// How many startups this session can take. Null means no limit.
+  capacity Int?
+
+  instructions String? @db.Text
+  remarks      String? @db.Text
+
+  status PitchingSessionStatus @default(DRAFT)
+
+  createdBy String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  scheme    Scheme?           @relation("PitchingSessionScheme", fields: [schemeId], references: [id])
+  schedules PitchSchedule[]
+  panels    EvaluationPanel[]
+
+  @@index([schemeId])
+  @@index([presentationDate])
+  @@index([status])
+  @@index([deletedAt])
+}
+
+model ReviewAssessmentConfig {
+  id                String   @id @default(uuid())
+  /// Percentage of the weighted total at or above which the rule proposes
+  /// ACCEPTED. Null means there is no score rule at all.
+  passMarkPercent   Float?
+  /// Apply the rule's result rather than only suggesting it.
+  autoApply         Boolean  @default(false)
+  /// Let a reviewer record a different result from the rule's.
+  allowOverride     Boolean  @default(true)
+  /// Refuse a submission leaving a mandatory criterion unscored, instead of
+  /// recording the review as INCOMPLETE.
+  blockOnIncomplete Boolean  @default(false)
+  isActive          Boolean  @default(true)
+  updatedBy         String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([isActive])
+}
+
+model SchemeAssignmentHistory {
+  id            String @id @default(uuid())
+  applicationId String
+
+  schemeId         String
+  previousSchemeId String?
+  kind             SchemeAssignmentKind   @default(PROVISIONAL)
+  action           SchemeAssignmentAction @default(ASSIGNED)
+
+  /// Required by the spec when changing an already-assigned scheme.
+  reason      String?  @db.Text
+  remarks     String?  @db.Text
+  performedBy String?
+  performedAt DateTime @default(now())
+
+  application    StartupApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  scheme         Scheme             @relation("SchemeHistoryScheme", fields: [schemeId], references: [id])
+  previousScheme Scheme?            @relation("SchemeHistoryPreviousScheme", fields: [previousSchemeId], references: [id])
+
+  @@index([applicationId])
+  @@index([schemeId])
+  @@index([performedAt])
+}
+
+model SchemeCommitteeMandate {
+  id       String @id @default(uuid())
+  schemeId String
+
+  /// What this committee is called in the scheme's own terms, e.g. "Committee A1".
+  name String
+  type CommitteeType @default(PITCH_EVALUATION)
+
+  minMembers Int  @default(1)
+  /// Null means no upper bound.
+  maxMembers Int?
+
+  purpose String? @db.Text
+  remarks String? @db.Text
+
+  /// Display and creation order within the scheme.
+  sequence Int     @default(1)
+  isActive Boolean @default(true)
+
+  createdBy String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  scheme       Scheme                       @relation(fields: [schemeId], references: [id], onDelete: Cascade)
+  requirements MandateCategoryRequirement[]
+  committees   Committee[]
+  panels       EvaluationPanel[]
+
+  @@unique([schemeId, name])
+  @@index([schemeId])
+  @@index([deletedAt])
 }

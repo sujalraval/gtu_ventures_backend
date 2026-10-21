@@ -101,7 +101,7 @@ jobs:
             SMTP_USER=${{ secrets.SMTP_USER }}
             SMTP_PASS=${{ secrets.SMTP_PASS }}
             EMAIL_FROM=${{ secrets.EMAIL_FROM }}
-            ALLOWED_ORIGINS=${{ secrets.ALLOWED_ORIGINS || 'https://apply.gtuventures.com' }}
+            ALLOWED_ORIGINS=${{ secrets.ALLOWED_ORIGINS || 'https://apply.gtuventures.com,https://gtuventures.com,https://www.gtuventures.com' }}
             UPLOADS_DIR=${{ secrets.UPLOADS_DIR || '/home/gtuventures-apply/uploads' }}
             QUICK_EKYC_API_KEY=${{ secrets.QUICK_EKYC_API_KEY }}
             EOF
